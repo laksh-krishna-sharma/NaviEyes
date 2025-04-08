@@ -1,4 +1,47 @@
-.python-version
-.env
+# Python
 __pycache__/
-public/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+*.eggs/
+.env
+.venv/
+venv/
+.python-version
+
+# Node/Expo/React Native
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.expo/
+.expo-shared/
+*.expo*
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Build outputs
+build/
+dist/
+*.apk
+*.aab
+*.ipa
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.cache/
+pytest_cache/
+
+# IDE/Editor configs
+.vscode/
+.idea/
+
+# Expo
+web-build/
