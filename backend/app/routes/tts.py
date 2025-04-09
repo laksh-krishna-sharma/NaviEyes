@@ -7,7 +7,7 @@ router = APIRouter()
 class TTSRequest(BaseModel):
     text: str
 
-@router.post("/tts/convert")
+@router.post("/convert")
 async def convert_text_to_speech(payload: TTSRequest):
     try:
         audio_url = text_to_speech(payload.text)
