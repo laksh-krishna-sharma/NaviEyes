@@ -1,11 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.modules.tts_module import text_to_speech
+from app.models.schema import TTSRequest
 
 router = APIRouter()
-
-class TTSRequest(BaseModel):
-    text: str
 
 @router.post("/convert")
 async def convert_text_to_speech(payload: TTSRequest):
