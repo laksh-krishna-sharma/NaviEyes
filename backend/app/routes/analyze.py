@@ -1,7 +1,12 @@
+import os
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException
 import asyncio
 from app.modules.image_processing import process_live_image, process_ocr_image
 from app.modules.tts_module import text_to_speech
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 router = APIRouter()
 
@@ -18,14 +23,16 @@ async def complete_capture(request: Request, file: UploadFile = File(...)):
     """
     try:
         image_bytes = await file.read()
-        host_url = str(request.base_url).rstrip("/")
-        
+        host_url = os.getenv("HOST_URL")
+        if not host_url:
+            raise HTTPException(status_code=500, detail="HOST_URL not set in environment variables.")
+
         # Process caption and OCR concurrently
         caption_task = process_live_image(image_bytes, host_url)
         ocr_task = process_ocr_image(image_bytes, host_url)
         caption_result, ocr_result = await asyncio.gather(caption_task, ocr_task)
         
-        # Combine the outputs (customize as needed)
+        # Combine the outputs
         combined_text = ""
         if caption_result:
             combined_text += f"Caption: {caption_result}. "

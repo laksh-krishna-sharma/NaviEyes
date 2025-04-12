@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routes import analyze, tts, location
+from app.routes import analyze, tts, location, query
 import asyncio
 import uvicorn
 from app.modules.image_processing import cleanup_temp_images
@@ -26,7 +26,7 @@ app.mount("/public", StaticFiles(directory="public"), name="public")
 
 # Include routers
 app.include_router(analyze.router, prefix="/analyze", tags=["analyze"])
-# app.include_router(query.router, prefix="/query", tags=["query"])
+app.include_router(query.router, prefix="/query", tags=["query"])
 app.include_router(location.router, prefix="/location", tags=["location"])
 app.include_router(tts.router, prefix="/tts", tags=["tts"])
 
