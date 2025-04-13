@@ -14,7 +14,6 @@ def speech_to_text(audio_file_path: str) -> str:
         response = client.audio.translations.create(
             file=(audio_file_path, audio_file.read()),
             model="whisper-large-v3",  # You can change the model here
-            language="en",  # Default language is English
             response_format="json",  # Get the response in JSON format
             temperature=0.0  # Optional: Fine-tune the temperature as per your need
         )
