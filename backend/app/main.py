@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.dummy_routes import analyze, tts, location, stt, query, nlp
-# from app.routes import image_analyze, location_nlp
+from app.dummy_routes import tts, stt, query, nlp  
+from app.routes import image_analyze, location_nlp
 import asyncio
 import uvicorn
 from app.modules.image_processing import cleanup_temp_images
@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
 
 app = FastAPI()
 
@@ -26,14 +27,14 @@ app.add_middleware(
 app.mount("/public", StaticFiles(directory="public"), name="public")
 
 # Include routers
-app.include_router(analyze.router, prefix="/analyze", tags=["analyze"])
+#app.include_router(analyze.router, prefix="/analyze", tags=["analyze"])
 app.include_router(query.router, prefix="/query", tags=["query"])
-app.include_router(location.router, prefix="/location", tags=["location"])
+#app.include_router(location.router, prefix="/location", tags=["location"])
 app.include_router(tts.router, prefix="/tts", tags=["tts"])
 app.include_router(stt.router, prefix="/stt", tags=["stt"])
 app.include_router(nlp.router, prefix="/nlp", tags=["nlp"])
-# app.include_router(image_analyze.router, prefix="/image_analyze", tags=["image_analyze"])
-# app.include_router(location_nlp.router, prefix="/location_nlp", tags=["location_nlp"])
+app.include_router(image_analyze.router, prefix="/image_analyze", tags=["image_analyze"])
+app.include_router(location_nlp.router, prefix="/location_nlp", tags=["location_nlp"])
 
 @app.get("/")
 def read_root():

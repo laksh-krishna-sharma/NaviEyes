@@ -96,8 +96,8 @@ async def process_ocr_image(image_bytes: bytes, host_url: str) -> dict:
     """
     filename = save_temp_image(image_bytes)
     image_url = f"{host_url}/public/{filename}"
-    # https://upload.wikimedia.org/wikipedia/commons/f/f2/LPU-v1-die.jpg
-    
+    #https://upload.wikimedia.org/wikipedia/commons/f/f2/LPU-v1-die.jpg
+ 
     try:
         ocr_completion = client.chat.completions.create(
             model="meta-llama/llama-4-scout-17b-16e-instruct",
