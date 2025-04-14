@@ -25,22 +25,53 @@ async def handle_location_query(lat: float, lon: float, audio_query: Optional[by
     Endpoint to handle location-based queries with two flows:
     1) Use lat/lon to get nearby locations and respond via TTS
     2) Process a query through STT -> NLP -> TTS pipeline
-
-    Args:
-        lat: Latitude of user's location
-        lon: Longitude of user's location
-        audio_query: Optional audio bytes for speech query
     """
     try:
         # Flow 1: Get nearby locations based on coordinates
-        nearby_locations = await get_location_info(lat, lon)
+        nearby_data = await get_location_info(lat, lon)
         
-        # If it's a string (like JSON), convert it to list of dicts
-        if isinstance(nearby_locations, str):
-            nearby_locations = json.loads(nearby_locations)
-
-        location_response = f"Nearby locations include: {', '.join([loc['name'] for loc in nearby_locations])}"
-
+        # If it's a string (like JSON), convert it to a dict
+        if isinstance(nearby_data, str):
+            nearby_data = json.loads(nearby_data)
+            
+        # Handle the dictionary structure - it might have a key containing the actual locations
+        nearby_locations = []
+        
+        # Check if the data has a standard format like {"locations": [...]} or {"results": [...]}
+        if "locations" in nearby_data and isinstance(nearby_data["locations"], list):
+            nearby_locations = nearby_data["locations"]
+        elif "results" in nearby_data and isinstance(nearby_data["results"], list):
+            nearby_locations = nearby_data["results"]
+        elif "places" in nearby_data and isinstance(nearby_data["places"], list):
+            nearby_locations = nearby_data["places"]
+        # If it's a flat dictionary with location fields directly
+        elif "name" in nearby_data:
+            nearby_locations = [nearby_data]
+        else:
+            # As a last resort, try to find any list in the dictionary
+            for key, value in nearby_data.items():
+                if isinstance(value, list) and len(value) > 0:
+                    nearby_locations = value
+                    break
+            
+        if not nearby_locations:
+            # No locations found, return a message
+            location_response = "No nearby locations found."
+            nearby_locations = []
+        else:
+            # Extract location names safely
+            location_names = []
+            for loc in nearby_locations:
+                if isinstance(loc, dict) and 'name' in loc:
+                    location_names.append(loc['name'])
+                elif isinstance(loc, str):
+                    location_names.append(loc)
+                    
+            if location_names:
+                location_response = f"Nearby locations include: {', '.join(location_names)}"
+            else:
+                location_response = "Found nearby locations but couldn't extract names."
+                
         # Flow 2: If audio query exists
         if audio_query:
             # Convert speech to text
@@ -70,5 +101,11 @@ async def handle_location_query(lat: float, lon: float, audio_query: Optional[by
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        # Include more debug info in the error
+        error_message = f"{str(e)}"
+        if 'nearby_data' in locals():
+            error_message += f" - Data structure: {type(nearby_data)}"
+            if isinstance(nearby_data, dict):
+                error_message += f" with keys: {list(nearby_data.keys())}"
+                
+        raise HTTPException(status_code=500, detail=error_message)

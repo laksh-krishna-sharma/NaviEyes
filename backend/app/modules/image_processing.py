@@ -42,8 +42,9 @@ async def process_live_image(image_bytes: bytes, host_url: str) -> dict:
     and logs the transaction to MongoDB.
     """
     filename = save_temp_image(image_bytes)
-    image_url = f"{host_url}/public/{filename}"
-    # https://upload.wikimedia.org/wikipedia/commons/f/f2/LPU-v1-die.jpg
+    #image_url = f"{host_url}/public/{filename}"
+    image_url = "https://upload.wikimedia.org/wikipedia/commons/f/f2/LPU-v1-die.jpg"
+    
     
     try:
         caption_completion = client.chat.completions.create(
@@ -95,8 +96,8 @@ async def process_ocr_image(image_bytes: bytes, host_url: str) -> dict:
     and logs the transaction to MongoDB.
     """
     filename = save_temp_image(image_bytes)
-    image_url = f"{host_url}/public/{filename}"
-    #https://upload.wikimedia.org/wikipedia/commons/f/f2/LPU-v1-die.jpg
+    #image_url = f"{host_url}/public/{filename}"
+    image_url = "https://upload.wikimedia.org/wikipedia/commons/f/f2/LPU-v1-die.jpg"
  
     try:
         ocr_completion = client.chat.completions.create(
