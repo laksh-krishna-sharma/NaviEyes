@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.dummy_routes import tts, stt, query, nlp  
 from app.routes import image_analyze, interact
 import asyncio
 import uvicorn
@@ -28,12 +27,6 @@ app.add_middleware(
 app.mount("/public", StaticFiles(directory="public"), name="public")
 
 # Include routers
-#app.include_router(analyze.router, prefix="/analyze", tags=["analyze"])
-app.include_router(query.router, prefix="/query", tags=["query"])
-#app.include_router(location.router, prefix="/location", tags=["location"])
-app.include_router(tts.router, prefix="/tts", tags=["tts"])
-app.include_router(stt.router, prefix="/stt", tags=["stt"])
-app.include_router(nlp.router, prefix="/nlp", tags=["nlp"])
 app.include_router(image_analyze.router, prefix="/image_analyze", tags=["image_analyze"])
 app.include_router(interact.router, prefix="/interact", tags=["location_nlp"])
 
