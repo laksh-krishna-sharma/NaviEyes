@@ -1,24 +1,29 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Greetings from Visionvoice!</Text>
-
       <TouchableOpacity
-        style={[styles.button, styles.buttonUp]}
+        style={[styles.button, styles.topButton]}
         onPress={() => router.push('/Screens/Camerascreen')}>
-        <Text style={styles.buttonText}>Press Here</Text>
+        <FontAwesome name="camera" size={50} color="#fff" />
+        <Text style={styles.buttonText}>Camera</Text>
       </TouchableOpacity>
 
+      <View style={styles.centerTextContainer}>
+        <Text style={styles.centerText}>Greetings  from  NaviEyes !</Text>
+      </View>
+
       <TouchableOpacity
-        style={[styles.button, styles.buttonDown]}
+        style={[styles.button, styles.bottomButton]}
         onPress={() => router.push('/Screens/Camerascreen')}>
-        <Text style={styles.buttonText}>Press Here</Text>
+        <FontAwesome name="microphone" size={50} color="#000" />
+        <Text style={[styles.buttonText, { color: '#000' }]}>Microphone</Text>
       </TouchableOpacity>
     </View>
   );
@@ -27,36 +32,43 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  button: {
+    width: '90%',
+    alignSelf: 'center',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
+    flexDirection: 'column',
+    paddingVertical: 30,
+    marginVertical: 10,
   },
-  text: {
-    fontSize: 20,
+  topButton: {
+    flex: 1,
+    backgroundColor: '#AB8BFF',
+    marginTop: 20,
+  },
+  bottomButton: {
+    flex: 1,
+    backgroundColor: '#ADD8E6',
+    marginBottom: 20,
+  },
+  centerTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerText: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 100,
-  },
-  button: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#AB8BFF',
-  },
-  buttonUp: {
-    position: 'absolute',
-    top: 50,
-  },
-  buttonDown: {
-    position: 'absolute',
-    bottom: 50,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
+    marginTop: 10,
+    color: '#fff',
   },
 });
