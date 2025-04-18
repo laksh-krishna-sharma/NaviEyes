@@ -53,3 +53,7 @@ pytest_cache/
 
 # Expo
 web-build/
+=======
+public/
+venv/
+*.mp3
