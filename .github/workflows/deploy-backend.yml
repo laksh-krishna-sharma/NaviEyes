@@ -1,53 +1,24 @@
-name: CI/CD - FastAPI Backend with Docker on Render
+name: Backend Deploy
 
 on:
   push:
     branches:
       - main
 
-env:
-  PYTHON_VERSION: '3.10'
-
 jobs:
-  lint-test:
-    name: Lint and Test Backend
+  deploy:
+    name: Deploy to Vercel
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Deploy with Vercel CLI
+        uses: amondnet/vercel-action@v25
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Lint code with ruff
-        run: |
-          pip install ruff
-          ruff app/
-
-      # Optional: Add if you write pytest tests
-      # - name: Run tests
-      #   run: |
-      #     pip install pytest
-      #     pytest app/tests/
-
-  deploy:
-    name: Deploy to Render
-    needs: lint-test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy via Render
-        uses: render-examples/github-actions-render-deploy@main
-        with:
-          service_id: ${{ secrets.RENDER_SERVICE_ID }}
-          api_key: ${{ secrets.RENDER_API_KEY }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./backend
+          prod: true
