@@ -27,4 +27,4 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/visionvoice-backend:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/visionvoice_backend:v1.0
