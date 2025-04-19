@@ -24,9 +24,7 @@ jobs:
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/visionvoice-backend:latest
-
-      - name: Deploy (Optional)
-        run: echo "Add your deployment step here (e.g., SSH, Vercel/Render trigger)"
