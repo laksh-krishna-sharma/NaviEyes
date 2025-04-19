@@ -1,18 +1,30 @@
-# app/modules/db.py
-import os
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient
+from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
+import os
+import logging
 
-load_dotenv()  # Load environment variables from .env
+load_dotenv()
 
-DB_URI = os.getenv("DB_URI")
-if not DB_URI:
-    raise ValueError("DB_URI environment variable is not set.")
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
-# Create an async client and get a reference to your database.
-client = AsyncIOMotorClient(DB_URI)
-db = client.get_default_database()  # Uses the database specified in the URI, or you can specify one: client["my_database"]
+uri = os.getenv("DB_URI")
+db_name = "visionvoiceDB"  # Explicitly define the database name here
 
-# Optionally, you can create helper functions to return collections:
+if not uri:
+    raise ValueError("DB_URI not found in environment variables")
+
+try:
+    client = MongoClient(uri, server_api=ServerApi("1"))
+    client.admin.command("ping")
+    logger.info("Successfully connected to MongoDB")
+except Exception as e:
+    logger.error(f"Failed to connect to MongoDB: {e}")
+    raise e
+
+# Specify the database explicitly
+db = client[db_name]
+
 def get_collection(collection_name: str):
     return db[collection_name]
