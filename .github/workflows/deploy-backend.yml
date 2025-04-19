@@ -1,4 +1,4 @@
-name: Backend Deploy
+name: Deploy Backend to Vercel
 
 on:
   push:
@@ -7,18 +7,16 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to Vercel
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy with Vercel CLI
+      - name: Deploy backend to Vercel
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
           working-directory: ./backend
-          prod: true
