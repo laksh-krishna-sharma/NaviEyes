@@ -5,26 +5,41 @@ import { FontAwesome } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const screenHeight = Dimensions.get('window').height;
 
   return (
     <View style={styles.container}>
+      {/* Top Half Touchable Area - Camera */}
       <TouchableOpacity
-        style={[styles.button, styles.topButton]}
-        onPress={() => router.push('/Screens/Camerascreen')}>
-        <FontAwesome name="camera" size={50} color="#fff" />
-        <Text style={styles.buttonText}>Camera</Text>
+        style={styles.topHalfTouchable}
+        onPress={() => router.push('/Screens/Camerascreen')}
+      >
+        <View style={[styles.button, styles.topButton]}>
+          <View style={styles.buttonContent}>
+            <FontAwesome name="camera" size={60} color="#fff" style={styles.icon} />
+            <Text style={styles.buttonText}>Camera</Text>
+          </View>
+        </View>
       </TouchableOpacity>
 
+      {/* Bottom Half Touchable Area - Microphone */}
+      <TouchableOpacity
+        style={styles.bottomHalfTouchable}
+        onPress={() => router.push('/Screens/VoiceScreen')}
+      >
+        <View style={[styles.button, styles.bottomButton]}>
+          <View style={styles.buttonContent}>
+            <FontAwesome name="microphone" size={60} color="#1a1a1a" style={styles.icon} />
+            <Text style={[styles.buttonText, { color: '#1a1a1a' }]}>Microphone</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* Center Text (non-touchable) */}
       <View style={styles.centerTextContainer}>
-        <Text style={styles.centerText}>Greetings  from  NaviEyes !</Text>
+        <Text style={styles.centerText}>Greetings from NaviEyes!</Text>
+        <View style={styles.divider} />
       </View>
-
-      <TouchableOpacity
-        style={[styles.button, styles.bottomButton]}
-        onPress={() => router.push('/Screens/Camerascreen')}>
-        <FontAwesome name="microphone" size={50} color="#000" />
-        <Text style={[styles.buttonText, { color: '#000' }]}>Microphone</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -32,43 +47,89 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#121212',
+    paddingHorizontal: 16,
+  },
+  topHalfTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    justifyContent: 'flex-end',
+    paddingBottom: 20,
+    zIndex: 1,
+  },
+  bottomHalfTouchable: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    justifyContent: 'flex-start',
+    paddingTop: 20,
+    zIndex: 1,
   },
   button: {
-    width: '90%',
-    alignSelf: 'center',
-    borderRadius: 20,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column',
-    paddingVertical: 30,
-    marginVertical: 10,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    alignSelf: 'center',
   },
   topButton: {
-    flex: 1,
-    backgroundColor: '#AB8BFF',
-    marginTop: 20,
+    backgroundColor: '#7B4DFF',
+    height: 200,
   },
   bottomButton: {
-    flex: 1,
-    backgroundColor: '#ADD8E6',
-    marginBottom: 20,
+    backgroundColor: '#64B5F6',
+    height: 200,
+
+  },
+  buttonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   centerTextContainer: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 0,
   },
   centerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
+    letterSpacing: 1,
+    marginBottom: 20,
   },
   buttonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 10,
+    fontSize: 26,
+    fontWeight: '600',
+    marginTop: 15,
     color: '#fff',
+    letterSpacing: 0.5,
+  },
+  icon: {
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  divider: {
+    height: 2,
+    width: '40%',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginVertical: 10,
   },
 });

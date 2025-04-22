@@ -1,10 +1,27 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Speech from 'expo-speech';
 
 export default function Camera() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
+
+  const speak = (message: string) => {
+    Speech.speak(message, {
+      voice: 'en-gb-x-sfg#female_1-local',
+        pitch: 0.8,
+        rate: 1.1,
+    });
+  };
+
+  useEffect(() => {
+    speak('You are now at the camera screen. Back camera is active. to flip the camera, press the button below.');
+    
+    return () => {
+      Speech.stop(); 
+    };
+  }, []);
 
   if (!permission) {
     return <View />;
@@ -20,7 +37,11 @@ export default function Camera() {
   }
 
   function toggleCameraFacing() {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
+    setFacing(current => {
+      const newFacing = current === 'back' ? 'front' : 'back';
+      speak(`Switched to ${newFacing} camera`);
+      return newFacing;
+    });
   }
 
   return (
@@ -28,7 +49,7 @@ export default function Camera() {
       <CameraView style={styles.camera} facing={facing}>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-            <Text style={styles.text}>Tap to Flip Camera</Text>
+            <Text style={styles.text}>Flip Camera</Text>
           </TouchableOpacity>
         </View>
       </CameraView>
