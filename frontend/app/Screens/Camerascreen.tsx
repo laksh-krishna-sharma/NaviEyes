@@ -1,58 +1,106 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { useState, useEffect } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import * as Speech from 'expo-speech';
+import { useEffect, useRef, useState } from 'react';
+import { Button, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
 
-export default function Camera() {
+export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [isTaking, setIsTaking] = useState(false);
+  const cameraRef = useRef<CameraView | null>(null);
+  const router = useRouter();
 
-  const speak = (message: string) => {
-    Speech.speak(message, {
-      voice: 'en-gb-x-sfg#female_1-local',
-        pitch: 0.8,
-        rate: 1.1,
-    });
+  const takePhoto = async () => {
+    if (cameraRef.current) {
+      try {
+        setIsTaking(true);
+        const photo = await cameraRef.current.takePictureAsync();
+        if (photo?.uri) {
+          setPhotoUri(photo.uri);
+        }
+      } catch (error) {
+        console.error('Error taking photo:', error);
+      } finally {
+        setIsTaking(false);
+      }
+    }
   };
 
   useEffect(() => {
-    speak('You are now at the camera screen. Back camera is active. to flip the camera, press the button below.');
-    
-    return () => {
-      Speech.stop(); 
-    };
-  }, []);
+    if (permission?.granted && !photoUri && !isTaking) {
+      const timer = setTimeout(() => {
+        takePhoto();
+      }, 2000);
 
-  if (!permission) {
-    return <View />;
-  }
+      return () => clearTimeout(timer);
+    }
+  }, [permission, photoUri, isTaking]);
 
+
+  if (!permission) return <View />;
   if (!permission.granted) {
     return (
       <View style={styles.container}>
         <Text style={styles.message}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="grant permission" />
+        <Button onPress={requestPermission} title="Grant Permission" />
       </View>
     );
   }
 
-  function toggleCameraFacing() {
-    setFacing(current => {
-      const newFacing = current === 'back' ? 'front' : 'back';
-      speak(`Switched to ${newFacing} camera`);
-      return newFacing;
-    });
-  }
+  const handleAgain = () => {
+    setPhotoUri(null);
+  };
+
+  const handleDone = async () => {
+    if (!photoUri) return;
+
+    try {
+      const base64 = await FileSystem.readAsStringAsync(photoUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      await axios.post('http://<YOUR-BACKEND-IP>:5000/upload', {
+        image: base64,
+      });
+
+      console.log(' ');
+    } catch (error) {
+      console.error('Upload error:', error);
+    }
+
+    router.push('/homescreen' as any); 
+
+  };
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-            <Text style={styles.text}>Flip Camera</Text>
-          </TouchableOpacity>
+      {photoUri ? (
+        <View style={styles.previewContainer}>
+          <Image source={{ uri: photoUri }} style={styles.preview} />
+          <View style={styles.optionButtons}>
+            <TouchableOpacity onPress={handleAgain} style={styles.optionButton}>
+              <Text style={styles.text}>Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDone} style={styles.optionButton}>
+              <Text style={styles.text}>Done</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </CameraView>
+      ) : (
+        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            >
+              <Text style={styles.text}>Flip</Text>
+            </TouchableOpacity>
+          </View>
+        </CameraView>
+      )}
     </View>
   );
 }
@@ -69,10 +117,32 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
+  previewContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  preview: {
+    width: '100%',
+    height: '80%',
+    resizeMode: 'cover',
+  },
+  optionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingVertical: 20,
+  },
+  optionButton: {
+    backgroundColor: '#333',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+  },
   buttonContainer: {
     flex: 1,
-    flexDirection: 'row',
     backgroundColor: 'transparent',
+    flexDirection: 'row',
     margin: 64,
   },
   button: {
@@ -81,7 +151,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
   },

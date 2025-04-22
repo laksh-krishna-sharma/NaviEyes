@@ -57,7 +57,7 @@ async def image_to_speech(request: Request, file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="No useful text extracted from the image.")
 
         # Convert text to speech
-        tts_audio_url = text_to_speech(combined_text)
+        tts_audio_url = text_to_speech(caption_text)
 
         return {
             "caption": caption_text,

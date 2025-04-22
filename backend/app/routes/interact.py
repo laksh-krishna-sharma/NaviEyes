@@ -30,35 +30,35 @@ def process_audio_reasoning(audio_file_path: str, prompt_prefix: str = "") -> di
     }
 
 
-@router.post("/voice-location")
-async def voice_with_location(
-    file: UploadFile = File(...),
-    latitude: float = Form(...),
-    longitude: float = Form(...)
-):
-    """
-    Accepts a speech audio + coordinates and returns spoken response for nearby place query.
-    """
-    audio_path = ""
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-            temp_audio.write(await file.read())
-            audio_path = temp_audio.name
+# @router.post("/voice-location")
+# async def voice_with_location(
+#     file: UploadFile = File(...),
+#     latitude: float = Form(...),
+#     longitude: float = Form(...)
+# ):
+#     """
+#     Accepts a speech audio + coordinates and returns spoken response for nearby place query.
+#     """
+#     audio_path = ""
+#     try:
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+#             temp_audio.write(await file.read())
+#             audio_path = temp_audio.name
 
-        location_info = await get_location_info(latitude, longitude)
-        address = location_info.get("address", "")
+#         location_info = await get_location_info(latitude, longitude)
+#         address = location_info.get("address", "")
 
-        prefix = f"User is at: {address}\nQuery: "
-        result = process_audio_reasoning(audio_path, prompt_prefix=prefix)
+#         prefix = f"User is at: {address}\nQuery: "
+#         result = process_audio_reasoning(audio_path, prompt_prefix=prefix)
 
-        return {
-            "location": location_info,
-            **result
-        }
+#         return {
+#             "location": location_info,
+#             **result
+#         }
 
-    finally:
-        if audio_path and os.path.exists(audio_path):
-            os.remove(audio_path)
+#     finally:
+#         if audio_path and os.path.exists(audio_path):
+#             os.remove(audio_path)
 
 
 @router.post("/voice-query")
