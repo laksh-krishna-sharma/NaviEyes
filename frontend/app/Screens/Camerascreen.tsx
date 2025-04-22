@@ -39,6 +39,7 @@ export default function CameraScreen() {
     }
   }, [permission, photoUri, isTaking]);
 
+
   if (!permission) return <View />;
   if (!permission.granted) {
     return (
