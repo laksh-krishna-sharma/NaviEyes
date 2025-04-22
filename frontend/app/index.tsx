@@ -28,7 +28,7 @@ export default function SplashScreen() {
           rate: 1.1,
         });
 
-        router.replace('/Screens/homeScreen');
+        router.replace('/Screens/homescreen');
       }, 2000);
 
     }, 2500);
