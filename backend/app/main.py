@@ -28,7 +28,7 @@ app.mount("/public", StaticFiles(directory="public"), name="public")
 
 # Include routers
 app.include_router(image_analyze.router, prefix="/image_analyze", tags=["image_analyze"])
-app.include_router(interact.router, prefix="/interact", tags=["location_nlp"])
+app.include_router(interact.router, prefix="/interact", tags=["nlp"])
 
 @app.get("/")
 def read_root():
