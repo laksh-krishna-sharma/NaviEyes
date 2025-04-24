@@ -61,7 +61,7 @@ export default function CameraScreen() {
 
     try {
       const res = await axios.post(
-        'https://5d83-2405-201-403e-a87c-b9a1-d323-cda5-449e.ngrok-free.app/image_analyze/describe-image-audio',
+        'http://13.51.106.169:8000/image_analyze/describe-image-audio',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'json' }
       );

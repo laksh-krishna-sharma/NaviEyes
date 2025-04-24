@@ -43,7 +43,7 @@ const VoiceScreen = () => {
         type: 'audio/wav',
       });
 
-      const response = await axios.post('https://5d83-2405-201-403e-a87c-b9a1-d323-cda5-449e.ngrok-free.app/interact/voice-query', formData, {
+      const response = await axios.post('http://13.51.106.169:8000/interact/voice-query', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'arraybuffer',
       });
