@@ -1,63 +1,58 @@
 import os
-import asyncio
-from fastapi import APIRouter, UploadFile, File, Request, HTTPException
+import logging
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
-from app.modules.image_processing import process_live_image, process_ocr_image
+from app.modules.image_processing import groq_image_analysis, encode_image_to_base64
 from app.modules.tts_module import text_to_speech
 
+# Load env
 load_dotenv()
+
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ImageToSpeech")
+
+# FastAPI app
 router = APIRouter()
 
-
-def extract_text_from_result(result) -> str:
-    """Extracts 'content' from a response which could be ChatCompletionMessage or nested dict."""
-    if hasattr(result, 'content'):
-        return result.content.strip()
-    if isinstance(result, dict):
-        if 'ocr_text' in result and isinstance(result['ocr_text'], dict) and 'content' in result['ocr_text']:
-            return result['ocr_text']['content'].strip()
-        if 'content' in result:
-            return result['content'].strip()
-    return ""
-
-
-@router.post("/image-to-speech")
-async def image_to_speech(request: Request, file: UploadFile = File(...)):
+@router.post("/describe-image-audio")
+async def describe_image_and_speak(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None
+):
     try:
-        image_bytes = await file.read()
-        host_url = os.getenv("HOST_URL")
-        if not host_url:
-            raise HTTPException(status_code=500, detail="HOST_URL not set in environment variables.")
+        base64_img = encode_image_to_base64(file)
 
-        caption_text, ocr_text = await asyncio.gather(
-            process_live_image(image_bytes, host_url),
-            process_ocr_image(image_bytes, host_url)
+        # Groq analysis
+        caption_text = groq_image_analysis(base64_img, "Describe the contents of this image.")
+        ocr_text = groq_image_analysis(base64_img, "Extract all text from this image.")
+
+        # Combine texts
+        combined_text = ""
+        if caption_text:
+            combined_text += f"Description of image is: {caption_text}. "
+        if ocr_text:
+            combined_text += f"Text in image is: {ocr_text}"
+
+        if not combined_text:
+            raise HTTPException(status_code=400, detail="No useful content found in image.")
+
+        # TTS
+        audio_path = text_to_speech(combined_text)
+        if not os.path.exists(audio_path):
+            raise HTTPException(status_code=500, detail="TTS audio file not found.")
+
+        # Clean up file after sending
+        background_tasks.add_task(os.remove, audio_path)
+
+        return FileResponse(
+            path=audio_path,
+            media_type="audio/wav",
+            filename=os.path.basename(audio_path),
+            background=background_tasks
         )
 
-        combined_text_parts = []
-        if caption_text:
-            combined_text_parts.append(f"Caption: {caption_text}")
-        if ocr_text:
-            combined_text_parts.append(f"OCR: {ocr_text}")
-
-        combined_text = " ".join(combined_text_parts)
-        if not combined_text:
-            raise HTTPException(status_code=400, detail="No useful text extracted from the image.")
-
-        tts_audio_path = text_to_speech(caption_text)
-        if tts_audio_path.startswith("/tmp/"):
-            tts_filename = os.path.basename(tts_audio_path)
-        else:
-            tts_filename = os.path.basename(tts_audio_path)
-
-        tts_audio_url = f"{host_url}/public/{tts_filename}"
-
-        return {
-            "caption": caption_text,
-            "ocr": ocr_text,
-            "combined_text": combined_text,
-            "tts_audio_url": tts_audio_url
-        }
-
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+        logger.exception("Image to speech processing failed")
+        raise HTTPException(status_code=500, detail=str(e))
