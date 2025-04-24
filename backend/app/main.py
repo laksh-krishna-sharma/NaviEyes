@@ -4,7 +4,6 @@ from fastapi.staticfiles import StaticFiles
 from app.routes import image_analyze, interact
 import asyncio
 import uvicorn
-from app.modules.image_processing import cleanup_temp_images
 from dotenv import load_dotenv
 
 
@@ -28,7 +27,7 @@ app.mount("/public", StaticFiles(directory="public"), name="public")
 
 # Include routers
 app.include_router(image_analyze.router, prefix="/image_analyze", tags=["image_analyze"])
-app.include_router(interact.router, prefix="/interact", tags=["location_nlp"])
+app.include_router(interact.router, prefix="/interact", tags=["nlp"])
 
 @app.get("/")
 def read_root():
@@ -39,7 +38,6 @@ def read_root():
 async def startup_event():
     async def periodic_cleanup():
         while True:
-            await cleanup_temp_images(expiration_seconds=3600)
             await asyncio.sleep(3600)  # Run cleanup every hour
     asyncio.create_task(periodic_cleanup())
 

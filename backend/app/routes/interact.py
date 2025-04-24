@@ -1,33 +1,71 @@
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
 from app.modules.stt_module import speech_to_text
-from app.modules.location_lookup import get_location_info
-from app.modules.nlp import run_nlp_reasoning
 from app.modules.tts_module import text_to_speech
+from app.modules.nlp import run_nlp_reasoning
 import tempfile
 import os
 
 router = APIRouter()
 
-
-def process_audio_reasoning(audio_file_path: str, prompt_prefix: str = "") -> dict:
-    """
-    Handles speech-to-text, reasoning, and TTS. Used by both voice endpoints.
-    """
+async def process_audio_reasoning(audio_file_path: str) -> str:
     prompt = speech_to_text(audio_file_path)
-    full_prompt = f"{prompt_prefix}{prompt}" if prompt_prefix else prompt
+    reasoning = run_nlp_reasoning(prompt)
+    if not reasoning["success"]:
+        raise HTTPException(status_code=500, detail=reasoning["error"])
+    response_text = reasoning["response"]
+    wav_path = text_to_speech(response_text)
+    return wav_path
 
-    reasoning_output = run_nlp_reasoning(full_prompt)
-    if not reasoning_output["success"]:
-        raise HTTPException(status_code=500, detail=reasoning_output["error"])
+@router.post("/voice-query")
+async def voice_query(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    audio_path = None
+    response_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            tmp.write(await file.read())
+            audio_path = tmp.name
 
-    final_response = reasoning_output["response"]
-    tts_url = text_to_speech(final_response)
+        prompt = speech_to_text(audio_path)
+        reasoning = run_nlp_reasoning(prompt)
+        if not reasoning["success"]:
+            raise HTTPException(status_code=500, detail=reasoning["error"])
+        response_text = reasoning["response"]
+        
+        response_path = text_to_speech(response_text)
+        
+        # Check if it's a WAV file or a TXT file
+        if response_path.endswith('.wav'):
+            # It's an audio file, return it as usual
+            background_tasks.add_task(os.remove, audio_path)
+            background_tasks.add_task(os.remove, response_path)
+            
+            return FileResponse(
+                response_path,
+                media_type="audio/wav",
+                filename=os.path.basename(response_path),
+                background=background_tasks
+            )
+        else:
+            # It's a text file, return the text as JSON
+            with open(response_path, 'r') as f:
+                text_content = f.read()
+                
+            background_tasks.add_task(os.remove, audio_path)
+            background_tasks.add_task(os.remove, response_path)
+            
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=200,
+                content={"text_response": text_content}
+            )
 
-    return {
-        "query": prompt,
-        "response": final_response,
-        "tts_audio_url": tts_url
-    }
+    except Exception as e:
+        if audio_path and os.path.exists(audio_path):
+            os.remove(audio_path)
+        if response_path and os.path.exists(response_path):
+            os.remove(response_path)
+        raise e
 
 
 # @router.post("/voice-location")
@@ -59,23 +97,3 @@ def process_audio_reasoning(audio_file_path: str, prompt_prefix: str = "") -> di
 #     finally:
 #         if audio_path and os.path.exists(audio_path):
 #             os.remove(audio_path)
-
-
-@router.post("/voice-query")
-async def voice_query(file: UploadFile = File(...)):
-    """
-    Accepts a speech audio and returns a spoken general response.
-    """
-    audio_path = ""
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-            temp_audio.write(await file.read())
-            audio_path = temp_audio.name
-
-        result = process_audio_reasoning(audio_path)
-
-        return result
-
-    finally:
-        if audio_path and os.path.exists(audio_path):
-            os.remove(audio_path)
