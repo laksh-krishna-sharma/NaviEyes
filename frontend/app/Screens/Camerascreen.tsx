@@ -95,6 +95,7 @@ export default function CameraScreen() {
   };
 
 
+
   const playTts = async (url: string) => {
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
@@ -118,6 +119,7 @@ export default function CameraScreen() {
       }
     }
   };
+
 
 
   const resetCamera = () => {
