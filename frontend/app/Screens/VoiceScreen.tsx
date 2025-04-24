@@ -4,9 +4,7 @@ import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
-import Constants from 'expo-constants';
-
-// const HOST_URL = Constants.expoConfig.extra.HOST_URL;
+import { encode } from 'base64-arraybuffer';
 
 const VoiceScreen = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -45,14 +43,9 @@ const VoiceScreen = () => {
         type: 'audio/wav',
       });
 
-    //   const response = await axios.post(`${HOST_URL}/interact/voice-query`, formData, {
-    //     headers: { 'Content-Type': 'multipart/form-data' },
-    //     responseType: 'arraybuffer', // handle binary response
-    //   });
-    
-    const response = await axios.post('https://ac93-2405-201-403e-a87c-a08c-3eb5-7f7c-55ea.ngrok-free.app/interact/voice-query', formData, {
+      const response = await axios.post('https://5d83-2405-201-403e-a87c-b9a1-d323-cda5-449e.ngrok-free.app/interact/voice-query', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        responseType: 'arraybuffer', // handle binary response
+        responseType: 'arraybuffer',
       });
 
       const contentType = response.headers['content-type'];
@@ -62,7 +55,7 @@ const VoiceScreen = () => {
         const json = JSON.parse(text);
         speak(json.text_response);
       } else if (contentType.includes('audio')) {
-        const base64Audio = Buffer.from(response.data, 'binary').toString('base64');
+        const base64Audio = encode(response.data);
         const fileUri = FileSystem.documentDirectory + 'response.wav';
         await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
         const { sound } = await Audio.Sound.createAsync({ uri: fileUri });
@@ -84,7 +77,6 @@ const VoiceScreen = () => {
       }
 
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-
       speak("Recording started. You may speak now.");
 
       const { recording: newRecording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);

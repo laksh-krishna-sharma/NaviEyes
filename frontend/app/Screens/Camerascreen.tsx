@@ -11,7 +11,6 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [ttsAudioUrl, setTtsAudioUrl] = useState<string | null>(null);
   const cameraRef = useRef<CameraView | null>(null);
 
   const speak = (text: string) => {
@@ -29,12 +28,14 @@ export default function CameraScreen() {
     return () => Speech.stop();
   }, [permission]);
 
-  const takePhoto = async () => {
+  const takeAndSendPhoto = async () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setPhotoUri(photo.uri);
+          speak("Photo taken. Sending to server...");
+          await sendPhotoToBackend(photo.uri);
         } else {
           speak("Could not capture photo.");
         }
@@ -60,20 +61,30 @@ export default function CameraScreen() {
 
     try {
       const res = await axios.post(
-        'https://b5ab-2405-201-403e-a87c-a08c-3eb5-7f7c-55ea.ngrok-free.app/image_analyze/image-to-speech',
+        'https://5d83-2405-201-403e-a87c-b9a1-d323-cda5-449e.ngrok-free.app/image_analyze/describe-image-audio',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'json' }
       );
 
-      const { tts_audio_url, description } = res.data;
+      const { description, audio_url, audio_data } = res.data;
 
-      if (tts_audio_url) {
-        setTtsAudioUrl(tts_audio_url);
-        await playTts(tts_audio_url);
-      } else if (description) {
-        speak(description);
+      // Announce the description of the image
+      speak(description);
+
+      // Handle audio URL if returned
+      if (audio_url) {
+        console.log('Received audio URL:', audio_url);  // Log audio URL
+        await playTts(audio_url);  // Play the audio using URL
+      } 
+      // Handle raw audio data if returned
+      else if (audio_data) {
+        console.log('Received audio data:', audio_data);  // Log base64 audio data
+        const base64Audio = audio_data;
+        const fileUri = FileSystem.documentDirectory + 'response.wav';
+        await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
+        await playTts(fileUri);  // Play the audio file created
       } else {
-        speak("No description found.");
+        speak("No audio received.");
       }
     } catch (err) {
       console.error('Error uploading image:', err);
@@ -83,11 +94,13 @@ export default function CameraScreen() {
     }
   };
 
+
   const playTts = async (url: string) => {
     try {
-      await Audio.Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
-      const { sound } = await Audio.Audio.Sound.createAsync({ uri: url }, { shouldPlay: true });
+      // Try playing the URL directly if it's a valid audio URL
+      const { sound } = await Audio.Sound.createAsync({ uri: url });
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) sound.unloadAsync();
       });
@@ -97,7 +110,7 @@ export default function CameraScreen() {
         const filename = url.split('/').pop()?.split('?')[0];
         const localFile = `${FileSystem.cacheDirectory}${filename}`;
         await FileSystem.downloadAsync(url, localFile);
-        const { sound } = await Audio.Audio.Sound.createAsync({ uri: localFile });
+        const { sound } = await Audio.Sound.createAsync({ uri: localFile });
         await sound.playAsync();
       } catch (err) {
         console.error('Fallback audio failed:', err);
@@ -106,19 +119,12 @@ export default function CameraScreen() {
     }
   };
 
+
   const resetCamera = () => {
     setPhotoUri(null);
     setIsProcessing(false);
-    setTtsAudioUrl(null);
     speak("Ready to take another photo.");
   };
-
-  useEffect(() => {
-    if (photoUri && !isProcessing) {
-      speak("Photo taken. Analyzing...");
-      sendPhotoToBackend(photoUri);
-    }
-  }, [photoUri]);
 
   if (!permission) return <View style={styles.container}><Text>Loading permissions...</Text></View>;
 
@@ -148,10 +154,7 @@ export default function CameraScreen() {
       ) : (
         <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.captureButton}
-              onPress={takePhoto}
-            >
+            <TouchableOpacity style={styles.captureButton} onPress={takeAndSendPhoto}>
               <Text style={styles.captureButtonText}>Capture</Text>
             </TouchableOpacity>
           </View>
