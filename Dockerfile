@@ -10,8 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the app code
 COPY backend/app /app/app
 
-# Expose the FastAPI port
-EXPOSE 8000
+# Create the public directory for static files
+RUN mkdir -p public
 
-# Run the FastAPI app from backend/app/main.py
+# Command to run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
