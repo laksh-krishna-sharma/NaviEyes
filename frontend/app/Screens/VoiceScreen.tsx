@@ -46,6 +46,18 @@ const VoiceScreen = () => {
     };
   }, [sound]);
 
+  useEffect(() => {
+  const checkPermissions = async () => {
+    const { status } = await Audio.getPermissionsAsync();
+    if (status !== 'granted') {
+      await Audio.requestPermissionsAsync();
+    }
+  };
+
+  checkPermissions();
+}, []);
+
+
   const stopAllAudio = async () => {
     try {
       Speech.stop();
@@ -68,6 +80,9 @@ const VoiceScreen = () => {
         type: 'audio/wav',
       });
 
+      
+      // await speak("Processing your query. Please wait...");
+
       const response = await axios.post('http://13.51.106.169:8000/interact/voice-query', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'arraybuffer',
@@ -84,21 +99,20 @@ const VoiceScreen = () => {
         const base64Audio = encode(response.data);
         const fileUri = FileSystem.documentDirectory + 'response.wav';
         await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
+
         const { sound: newSound } = await Audio.Sound.createAsync({ uri: fileUri });
 
         setSound(newSound);
 
-        await new Promise((resolve) => {
+        // Non-blocking audio playback
+        newSound.playAsync().then(() => {
           newSound.setOnPlaybackStatusUpdate((status) => {
             if (status.didJustFinish) {
-              resolve();
+              // Handle audio finish
+              speak("Click the button on bottom left to ask another query or click the button on bottom right to go back to home.");
             }
           });
         });
-
-        await newSound.playAsync();
-
-        await speak("Click the button on bottom left to ask another query or click the button on bottom right to go back to home.");
       } else {
         await speak("Unknown response type from server.");
       }
@@ -109,27 +123,34 @@ const VoiceScreen = () => {
   };
 
 
-  const startRecording = async () => {
-    try {
-      await stopAllAudio(); // Stop any ongoing speech/audio before recording
-      
-      if (permissionResponse?.status !== 'granted') {
+
+
+const startRecording = async () => {
+  try {
+    await stopAllAudio(); // Stop any ongoing speech/audio before recording
+
+    // Check if the permission is granted
+    if (permissionResponse?.status !== 'granted') {
+      const { status } = await Audio.requestPermissionsAsync(); // Explicitly request permission
+      if (status !== 'granted') {
         speak('Microphone permission is required!');
         return;
       }
-
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      speak("Recording started. You may speak now.");
-
-      const { recording: newRecording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-
-      setRecording(newRecording);
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Failed to start recording', err);
-      speak("Failed to start recording. Please try again.");
     }
-  };
+
+    await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+    speak("Recording started. You may speak now.");
+
+    const { recording: newRecording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+
+    setRecording(newRecording);
+    setIsRecording(true);
+  } catch (err) {
+    console.error('Failed to start recording', err);
+    speak("Failed to start recording. Please try again.");
+  }
+};
+
 
   const stopRecording = async () => {
     try {

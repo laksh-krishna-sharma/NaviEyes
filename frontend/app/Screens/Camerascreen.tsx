@@ -66,7 +66,7 @@ export default function CameraScreen() {
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setPhotoUri(photo.uri);
-          speak("Photo taken. Sending to server...");
+          speak("Photo taken.... Now analyzing the image.");
           await sendPhotoToBackend(photo.uri);
         } else {
           speak("Could not capture photo.");
@@ -99,7 +99,8 @@ export default function CameraScreen() {
       );
 
       if (res.data) {
-        const cleanedText = res.data.replace(/[^a-zA-Z0-9\s]/g, '');
+        const maxLength = 1000;
+        const cleanedText = res.data.slice(0, maxLength).replace(/[^a-zA-Z0-9\s]/g, '');
         speak(cleanedText);
         speak("Image analysis complete. Click the button on bottom left to take another photo or click the button on bottom right to go back to home.");
       } else {
@@ -112,6 +113,7 @@ export default function CameraScreen() {
       setIsProcessing(false);
     }
   };
+
 
   const resetCamera = async () => {
     await stopAllAudio();
