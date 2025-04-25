@@ -69,7 +69,7 @@ export default function CameraScreen() {
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
-     
+      // const contentType = res.headers['content-type']; contentType = audio/wav
 
      
     if (res.data) {

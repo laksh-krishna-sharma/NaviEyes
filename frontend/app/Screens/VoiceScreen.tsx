@@ -14,7 +14,7 @@ const VoiceScreen = () => {
   const voiceConfig = {
     voice: 'en-gb-x-sfg#female_1-local',
     pitch: 0.8,
-    rate: 1.1,
+    rate: 0.8,
   };
 
   const speak = (text) => {
@@ -49,6 +49,10 @@ const VoiceScreen = () => {
       });
 
       const contentType = response.headers['content-type'];
+
+      // console.log(response.data);
+      // console.log(contentType);
+      
 
       if (contentType.includes('application/json')) {
         const text = new TextDecoder().decode(response.data);
