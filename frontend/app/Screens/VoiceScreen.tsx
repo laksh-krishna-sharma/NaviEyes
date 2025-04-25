@@ -50,8 +50,8 @@ const VoiceScreen = () => {
 
       const contentType = response.headers['content-type'];
 
-      console.log(response.data);
-      console.log(contentType);
+      // console.log(response.data);
+      // console.log(contentType);
       
 
       if (contentType.includes('application/json')) {
