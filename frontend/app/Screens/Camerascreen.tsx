@@ -130,6 +130,7 @@ export default function CameraScreen() {
   if (!permission) return <View style={styles.container}><Text>Loading permissions...</Text></View>;
 
   if (!permission.granted) {
+    speak("Camera access is required to take photos. Please grant permission.");
     return (
       <View style={styles.container}>
         <Text style={styles.text}>Camera access required</Text>

@@ -131,6 +131,7 @@ const startRecording = async () => {
 
     // Check if the permission is granted
     if (permissionResponse?.status !== 'granted') {
+      speak('Microphone permission is required! Please grant permission.');
       const { status } = await Audio.requestPermissionsAsync(); // Explicitly request permission
       if (status !== 'granted') {
         speak('Microphone permission is required!');
