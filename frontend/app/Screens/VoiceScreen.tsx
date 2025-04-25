@@ -83,7 +83,7 @@ const VoiceScreen = () => {
       
       // await speak("Processing your query. Please wait...");
 
-      const response = await axios.post('http://13.51.106.169:8000/interact/voice-query', formData, {
+      const response = await axios.post('https://532d-13-51-106-169.ngrok-free.app/interact/voice-query', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'arraybuffer',
       });
