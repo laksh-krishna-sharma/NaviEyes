@@ -1,8 +1,7 @@
 import os
 import logging
-import shutil
-from fastapi import APIRouter, UploadFile, File, Request, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from app.modules.image_processing import groq_image_analysis, encode_image_to_base64
 from app.modules.tts_module import text_to_speech
@@ -17,18 +16,19 @@ logger = logging.getLogger("ImageToSpeech")
 # FastAPI app
 router = APIRouter()
 
-# Constants
-HOST_URL = os.getenv("HOST_URL", "http://localhost:8000")
-
 @router.post("/describe-image-audio")
-async def describe_image_and_speak(file: UploadFile = File(...)):
+async def describe_image_and_speak(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None
+):
     try:
         base64_img = encode_image_to_base64(file)
 
-        # Parallel or sequential, using await here since Groq is sync
+        # Groq analysis
         caption_text = groq_image_analysis(base64_img, "Describe the contents of this image.")
         ocr_text = groq_image_analysis(base64_img, "Extract all text from this image.")
 
+        # Combine texts
         combined_text = ""
         if caption_text:
             combined_text += f"Description of image is: {caption_text}. "
@@ -38,19 +38,21 @@ async def describe_image_and_speak(file: UploadFile = File(...)):
         if not combined_text:
             raise HTTPException(status_code=400, detail="No useful content found in image.")
 
-        # Generate speech
+        # TTS
         audio_path = text_to_speech(combined_text)
-        audio_filename = os.path.basename(audio_path)
-        audio_url = f"{HOST_URL}/public/{audio_filename}"
+        if not os.path.exists(audio_path):
+            raise HTTPException(status_code=500, detail="TTS audio file not found.")
 
-        return {
-            "description": caption_text,
-            "ocr_text": ocr_text,
-            "combined_text": combined_text,
-            "tts_audio_url": audio_url
-        }
+        # Clean up file after sending
+        background_tasks.add_task(os.remove, audio_path)
+
+        return FileResponse(
+            path=audio_path,
+            media_type="audio/wav",
+            filename=os.path.basename(audio_path),
+            background=background_tasks
+        )
 
     except Exception as e:
-        logger.exception("Processing failed")
+        logger.exception("Image to speech processing failed")
         raise HTTPException(status_code=500, detail=str(e))
-

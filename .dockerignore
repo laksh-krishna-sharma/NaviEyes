@@ -1,0 +1,49 @@
+# Ignore everything outside backend/
+.*
+
+# Allow backend folder and its contents
+!backend/
+!backend/app/
+!backend/app/**
+!backend/requirements.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+*.eggs/
+.env
+.venv/
+venv/
+.python-version
+
+# Logs
+*.log
+
+# Ignore audio or media files if not needed
+*.mp3
+*.wav
+
+# Expo/Node-related
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.expo/
+.expo-shared/
+*.expo*
+web-build/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python build
+build/
+dist/
+.cache/
