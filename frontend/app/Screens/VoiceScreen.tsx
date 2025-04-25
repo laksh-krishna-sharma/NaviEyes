@@ -5,16 +5,18 @@ import * as Speech from 'expo-speech';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
 import { encode } from 'base64-arraybuffer';
+import { router } from 'expo-router';
 
 const VoiceScreen = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
+  const [sound, setSound] = useState(null); 
 
   const voiceConfig = {
     voice: 'en-gb-x-sfg#female_1-local',
     pitch: 0.8,
-    rate: 1.1,
+    rate: 0.8,
   };
 
   const speak = (text) => {
@@ -27,12 +29,35 @@ const VoiceScreen = () => {
 
   useEffect(() => {
     speak("You are on the Voice to Text screen. Press the button in the center to ask your query.");
-    return () => Speech.stop();
+    return () => {
+      Speech.stop();
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
   }, []);
 
+
   useEffect(() => {
-    if (!permissionResponse) requestPermission();
-  }, []);
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
+  const stopAllAudio = async () => {
+    try {
+      Speech.stop();
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      }
+    } catch (error) {
+      console.error('Error stopping audio:', error);
+    }
+  };
 
   const sendToBackend = async (uri) => {
     try {
@@ -43,7 +68,7 @@ const VoiceScreen = () => {
         type: 'audio/wav',
       });
 
-      const response = await axios.post('https://5d83-2405-201-403e-a87c-b9a1-d323-cda5-449e.ngrok-free.app/interact/voice-query', formData, {
+      const response = await axios.post('http://13.51.106.169:8000/interact/voice-query', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'arraybuffer',
       });
@@ -58,8 +83,9 @@ const VoiceScreen = () => {
         const base64Audio = encode(response.data);
         const fileUri = FileSystem.documentDirectory + 'response.wav';
         await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
-        const { sound } = await Audio.Sound.createAsync({ uri: fileUri });
-        await sound.playAsync();
+        const { sound: newSound } = await Audio.Sound.createAsync({ uri: fileUri });
+        setSound(newSound);
+        await newSound.playAsync();
       } else {
         speak("Unknown response type from server.");
       }
@@ -71,6 +97,8 @@ const VoiceScreen = () => {
 
   const startRecording = async () => {
     try {
+      await stopAllAudio(); // Stop any ongoing speech/audio before recording
+      
       if (permissionResponse?.status !== 'granted') {
         speak('Microphone permission is required!');
         return;
@@ -109,6 +137,16 @@ const VoiceScreen = () => {
     }
   };
 
+  const resetRecording = async () => {
+    await stopAllAudio();
+    speak("Ready to record another query.");
+  };
+
+  const goToHome = async () => {
+    await stopAllAudio();
+    router.push('/Screens/homescreen');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Voice to Text</Text>
@@ -118,7 +156,7 @@ const VoiceScreen = () => {
           {isRecording ? "Recording..." : "Press button to speak"}
         </Text>
       </View>
-
+      
       <TouchableOpacity
         style={[styles.button, isRecording && styles.recordingButton]}
         onPress={isRecording ? stopRecording : startRecording}
@@ -127,15 +165,53 @@ const VoiceScreen = () => {
           {isRecording ? "Stop Recording" : "Start Recording"}
         </Text>
       </TouchableOpacity>
+
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity 
+          style={styles.leftHalfTouchable} 
+          onPress={resetRecording} 
+          disabled={isRecording}
+        />
+        <TouchableOpacity 
+          style={styles.rightHalfTouchable} 
+          onPress={goToHome} 
+          disabled={isRecording}
+        />
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.resetButton} onPress={resetRecording} disabled={isRecording}>
+            <Text style={styles.resetButtonText}>Record Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.homeButton} onPress={goToHome} disabled={isRecording}>
+            <Text style={styles.resetButtonText}>Back to Home</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f5f5f5' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' },
-  statusContainer: { marginBottom: 30, height: 30 },
-  statusText: { fontSize: 18, color: '#666' },
+  container: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20, 
+    backgroundColor: '#000' 
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    marginBottom: 20, 
+    color: 'white' 
+  },
+  statusContainer: { 
+    marginBottom: 30, 
+    height: 30 
+  },
+  statusText: { 
+    fontSize: 18, 
+    color: 'white' 
+  },
   button: {
     width: 200,
     height: 200,
@@ -148,9 +224,70 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+    marginBottom: 30,
   },
-  recordingButton: { backgroundColor: '#EA4335' },
-  buttonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+  recordingButton: { 
+    backgroundColor: '#64B5F6' 
+  },
+  buttonText: { 
+    color: 'white', 
+    fontSize: 18, 
+    fontWeight: 'bold' 
+  },
+  actionButtons: {
+    position: 'absolute',
+    bottom: 30,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  resetButton: {
+    backgroundColor: '#34A853',
+    paddingVertical: 14,
+    paddingHorizontal: 44,
+    borderRadius: 30,
+  },
+  homeButton: {
+    backgroundColor: '#EA4335',
+    paddingVertical: 14,
+    paddingHorizontal: 44,
+    borderRadius: 30,
+  },
+  resetButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  actionButtonsContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    height: 60, // Match your button height
+  },
+  leftHalfTouchable: {
+    position: 'absolute',
+    left: 0,
+    width: '50%',
+    height: '100%',
+    zIndex: 2,
+  },
+  rightHalfTouchable: {
+    position: 'absolute',
+    right: 0,
+    width: '50%',
+    height: '100%',
+    zIndex: 2,
+  },
+  actionButtons: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: 12,
+    zIndex: 1,
+    justifyContent: 'center',
+  }
 });
 
 export default VoiceScreen;

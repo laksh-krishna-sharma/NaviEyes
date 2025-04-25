@@ -5,6 +5,8 @@ import * as FileSystem from 'expo-file-system';
 import * as Audio from 'expo-av';
 import axios from 'axios';
 import * as Speech from 'expo-speech';
+import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
@@ -12,12 +14,14 @@ export default function CameraScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const cameraRef = useRef<CameraView | null>(null);
+  const navigation = useNavigation();
+  const [sound, setSound] = useState<Audio.Sound | null>(null); // Track audio playback
 
   const speak = (text: string) => {
     Speech.speak(text, {
       voice: 'en-gb-x-sfg#female_1-local',
       pitch: 0.8,
-      rate: 1.1,
+      rate: 0.8,
     });
   };
 
@@ -25,12 +29,40 @@ export default function CameraScreen() {
     if (permission?.granted) {
       speak("You are on the camera screen. Press the large button at the bottom to take a picture.");
     }
-    return () => Speech.stop();
+    return () => {
+      Speech.stop();
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
   }, [permission]);
+
+  // Clean up audio on unmount
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
+  const stopAllAudio = async () => {
+    try {
+      Speech.stop();
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      }
+    } catch (error) {
+      console.error('Error stopping audio:', error);
+    }
+  };
 
   const takeAndSendPhoto = async () => {
     if (cameraRef.current) {
       try {
+        await stopAllAudio(); // Stop any ongoing speech/audio before taking photo
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setPhotoUri(photo.uri);
@@ -61,30 +93,16 @@ export default function CameraScreen() {
 
     try {
       const res = await axios.post(
-        'https://5d83-2405-201-403e-a87c-b9a1-d323-cda5-449e.ngrok-free.app/image_analyze/describe-image-audio',
+        'http://13.51.106.169:8000/image_analyze/describe-image-audio',
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'json' }
+        { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
-      const { description, audio_url, audio_data } = res.data;
-
-      // Announce the description of the image
-      speak(description);
-
-      // Handle audio URL if returned
-      if (audio_url) {
-        console.log('Received audio URL:', audio_url);  // Log audio URL
-        await playTts(audio_url);  // Play the audio using URL
-      } 
-      // Handle raw audio data if returned
-      else if (audio_data) {
-        console.log('Received audio data:', audio_data);  // Log base64 audio data
-        const base64Audio = audio_data;
-        const fileUri = FileSystem.documentDirectory + 'response.wav';
-        await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
-        await playTts(fileUri);  // Play the audio file created
+      if (res.data) {
+        const cleanedText = res.data.replace(/[^a-zA-Z0-9\s]/g, '');
+        speak(cleanedText);
       } else {
-        speak("No audio received.");
+        speak("No description received.");
       }
     } catch (err) {
       console.error('Error uploading image:', err);
@@ -94,36 +112,31 @@ export default function CameraScreen() {
     }
   };
 
-
-  const playTts = async (url: string) => {
+  const playAudio = async (url: string) => {
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-
-      // Try playing the URL directly if it's a valid audio URL
-      const { sound } = await Audio.Sound.createAsync({ uri: url });
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) sound.unloadAsync();
+      const { sound: newSound } = await Audio.Sound.createAsync({ uri: url });
+      setSound(newSound);
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) newSound.unloadAsync();
       });
-      await sound.playAsync();
-    } catch (e) {
-      try {
-        const filename = url.split('/').pop()?.split('?')[0];
-        const localFile = `${FileSystem.cacheDirectory}${filename}`;
-        await FileSystem.downloadAsync(url, localFile);
-        const { sound } = await Audio.Sound.createAsync({ uri: localFile });
-        await sound.playAsync();
-      } catch (err) {
-        console.error('Fallback audio failed:', err);
-        speak("Could not play the audio.");
-      }
+      await newSound.playAsync();
+    } catch (err) {
+      console.error('Audio playback error:', err);
+      speak("Unable to play the audio response.");
     }
   };
 
-
-  const resetCamera = () => {
+  const resetCamera = async () => {
+    await stopAllAudio();
     setPhotoUri(null);
     setIsProcessing(false);
     speak("Ready to take another photo.");
+  };
+
+  const goToHome = async () => {
+    await stopAllAudio();
+    router.push('/Screens/homescreen');
   };
 
   if (!permission) return <View style={styles.container}><Text>Loading permissions...</Text></View>;
@@ -147,9 +160,26 @@ export default function CameraScreen() {
               <Text style={styles.loadingText}>Analyzing...</Text>
             </View>
           )}
-          <TouchableOpacity style={styles.resetButton} onPress={resetCamera} disabled={isProcessing}>
-            <Text style={styles.resetButtonText}>Take Another</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity 
+              style={styles.leftHalfTouchable} 
+              onPress={resetCamera} 
+              disabled={isProcessing}
+            />
+            <TouchableOpacity 
+              style={styles.rightHalfTouchable} 
+              onPress={goToHome} 
+              disabled={isProcessing}
+            />
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.resetButton} onPress={resetCamera} disabled={isProcessing}>
+                <Text style={styles.resetButtonText}>Take Another</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.homeButton} onPress={goToHome} disabled={isProcessing}>
+                <Text style={styles.resetButtonText}>Back to Home</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       ) : (
         <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
@@ -163,10 +193,9 @@ export default function CameraScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center' },
-  camera: { flex: 1 },
+  container: { flex: 1, justifyContent: 'center',backgroundColor: '#000' },
+  camera: { flex: 1, backgroundColor: '#000' },
   buttonContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -177,14 +206,16 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: '#4285F4',
+    shadowRadius: 10,
+    shadowColor: '#000',
+    backgroundColor: '#7B4DFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 10,
   },
   captureButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold'
   },
   previewContainer: {
@@ -198,13 +229,23 @@ const styles = StyleSheet.create({
     height: '80%',
     resizeMode: 'cover',
   },
-  resetButton: {
+  actionButtons: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 10,
+    flexDirection: 'row',
+    gap: 16,
+  },
+  resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingHorizontal: 44,
+    borderRadius: 30,
+  },
+  homeButton: {
+    backgroundColor: '#EA4335',
+    paddingVertical: 14,
+    paddingHorizontal: 44,
+    borderRadius: 30,
   },
   resetButtonText: {
     color: 'white',
@@ -227,5 +268,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     padding: 16,
-  }
+  },
+  actionButtonsContainer: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+    height: 60, 
+  },
+  leftHalfTouchable: {
+    position: 'absolute',
+    left: 0,
+    width: '50%',
+    height: '100%',
+    zIndex: 2,
+  },
+  rightHalfTouchable: {
+    position: 'absolute',
+    right: 0,
+    width: '50%',
+    height: '100%',
+    zIndex: 2,
+  },
+  actionButtons: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: 16,
+    zIndex: 1,
+  },
 });

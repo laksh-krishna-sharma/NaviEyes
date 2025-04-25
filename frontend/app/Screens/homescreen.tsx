@@ -9,7 +9,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top Half Touchable Area - Camera */}
+      
       <TouchableOpacity
         style={styles.topHalfTouchable}
         onPress={() => router.push('/Screens/Camerascreen')}
@@ -22,7 +22,6 @@ export default function HomeScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Bottom Half Touchable Area - Microphone */}
       <TouchableOpacity
         style={styles.bottomHalfTouchable}
         onPress={() => router.push('/Screens/VoiceScreen')}
@@ -35,7 +34,6 @@ export default function HomeScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Center Text (non-touchable) */}
       <View style={styles.centerTextContainer}>
         <Text style={styles.centerText}>Greetings from NaviEyes!</Text>
         <View style={styles.divider} />
@@ -72,7 +70,7 @@ const styles = StyleSheet.create({
   },
   button: {
     width: 200,
-    height: 200,
+    height: 400,
     borderRadius: 100,
     justifyContent: 'center',
     alignItems: 'center',
@@ -86,10 +84,12 @@ const styles = StyleSheet.create({
   topButton: {
     backgroundColor: '#7B4DFF',
     height: 200,
+    width: 350,
   },
   bottomButton: {
     backgroundColor: '#64B5F6',
     height: 200,
+    width: 350,
 
   },
   buttonContent: {
