@@ -1,15 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
+import * as Speech from 'expo-speech'; // ✅ Import this
 
 export default function HomeScreen() {
   const router = useRouter();
   const screenHeight = Dimensions.get('window').height;
 
+  useEffect(() => {
+    const speak = (text: string) => {
+      Speech.speak(text, {
+        voice: 'en-gb-x-sfg#female_1-local',
+        pitch: 0.8,
+        rate: 0.8,
+      });
+    };
+
+    speak("You are on the Home screen. Press the button at the top to access the camera. Press the button at the bottom to use the voice-to-text feature.");
+
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
   return (
     <View style={styles.container}>
-      
       <TouchableOpacity
         style={styles.topHalfTouchable}
         onPress={() => router.push('/Screens/Camerascreen')}
@@ -41,6 +57,7 @@ export default function HomeScreen() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

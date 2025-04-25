@@ -101,6 +101,7 @@ export default function CameraScreen() {
       if (res.data) {
         const cleanedText = res.data.replace(/[^a-zA-Z0-9\s]/g, '');
         speak(cleanedText);
+        speak("Image analysis complete. Click the button on bottom left to take another photo or click the button on bottom right to go back to home.");
       } else {
         speak("No description received.");
       }
@@ -109,21 +110,6 @@ export default function CameraScreen() {
       speak("Image analysis failed.");
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const playAudio = async (url: string) => {
-    try {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound: newSound } = await Audio.Sound.createAsync({ uri: url });
-      setSound(newSound);
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) newSound.unloadAsync();
-      });
-      await newSound.playAsync();
-    } catch (err) {
-      console.error('Audio playback error:', err);
-      speak("Unable to play the audio response.");
     }
   };
 
@@ -238,13 +224,13 @@ const styles = StyleSheet.create({
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 44,
+    paddingHorizontal: 30,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 44,
+    paddingHorizontal: 30,
     borderRadius: 30,
   },
   resetButtonText: {

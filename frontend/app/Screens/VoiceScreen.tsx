@@ -28,7 +28,7 @@ const VoiceScreen = () => {
   };
 
   useEffect(() => {
-    speak("You are on the Voice to Text screen. Press the button in the center to ask your query.");
+    speak("You are on the Voice to Text screen. Press the button in the center to start recording and ask your query. Once you finish, press the button again to stop recording.");
     return () => {
       Speech.stop();
       if (sound) {
@@ -78,22 +78,36 @@ const VoiceScreen = () => {
       if (contentType.includes('application/json')) {
         const text = new TextDecoder().decode(response.data);
         const json = JSON.parse(text);
-        speak(json.text_response);
+        await speak(json.text_response);
+        await speak("Click the button on bottom left to ask another query or click the button on bottom right to go back to home.");
       } else if (contentType.includes('audio')) {
         const base64Audio = encode(response.data);
         const fileUri = FileSystem.documentDirectory + 'response.wav';
         await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
         const { sound: newSound } = await Audio.Sound.createAsync({ uri: fileUri });
+
         setSound(newSound);
+
+        await new Promise((resolve) => {
+          newSound.setOnPlaybackStatusUpdate((status) => {
+            if (status.didJustFinish) {
+              resolve();
+            }
+          });
+        });
+
         await newSound.playAsync();
+
+        await speak("Click the button on bottom left to ask another query or click the button on bottom right to go back to home.");
       } else {
-        speak("Unknown response type from server.");
+        await speak("Unknown response type from server.");
       }
     } catch (error) {
       console.error('Error sending to backend or playing audio:', error);
-      speak('Failed to get a response from the server.');
+      await speak('Failed to get a response from the server.');
     }
   };
+
 
   const startRecording = async () => {
     try {
@@ -243,13 +257,13 @@ const styles = StyleSheet.create({
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 44,
+    paddingHorizontal: 30,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 44,
+    paddingHorizontal: 30,
     borderRadius: 30,
   },
   resetButtonText: {

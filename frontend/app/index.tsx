@@ -22,12 +22,7 @@ export default function SplashScreen() {
       });
 
       setTimeout(() => {
-        Speech.speak('I will now update you with features on the Home screen. To access the camera, tap the button at the top of the screen. To use the voice-to-text feature, tap the button at the bottom of the screen.', {
-          voice: 'en-gb-x-sfg#female_1-local',
-          pitch: 0.8,
-          rate: 0.8,
-        });
-
+        
         router.replace('/Screens/homescreen');
       }, 2000);
 
