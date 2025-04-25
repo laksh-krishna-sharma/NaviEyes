@@ -13,10 +13,12 @@
     },
     "android": {
       "permissions": [
-        "CAMERA"
+          "CAMERA",
+          "MICROPHONE",
+          "ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/eye.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.lakshkrishna.NaviEyes"

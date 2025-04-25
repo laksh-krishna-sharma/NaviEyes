@@ -58,5 +58,7 @@ public/
 venv/
 *.mp3
 
+android/
+ios/
 
 visionvoice-01.pem
