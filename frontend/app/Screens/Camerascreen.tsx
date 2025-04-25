@@ -5,6 +5,8 @@ import * as FileSystem from 'expo-file-system';
 import * as Audio from 'expo-av';
 import axios from 'axios';
 import * as Speech from 'expo-speech';
+import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
@@ -12,12 +14,13 @@ export default function CameraScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const cameraRef = useRef<CameraView | null>(null);
+  const navigation = useNavigation();
 
   const speak = (text: string) => {
     Speech.speak(text, {
       voice: 'en-gb-x-sfg#female_1-local',
       pitch: 0.8,
-      rate: 1.1,
+      rate: 0.8,
     });
   };
 
@@ -63,29 +66,20 @@ export default function CameraScreen() {
       const res = await axios.post(
         'http://13.51.106.169:8000/image_analyze/describe-image-audio',
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'json' }
+        { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
-      const { description, audio_url, audio_data } = res.data;
+     
 
-      // Announce the description of the image
-      speak(description);
+     
+    if (res.data) {
+      const cleanedText = res.data.replace(/[^a-zA-Z0-9\s]/g, '');
+      speak(cleanedText);
+    } else {
+      speak("No description received.");
+    }
 
-      // Handle audio URL if returned
-      if (audio_url) {
-        console.log('Received audio URL:', audio_url);  // Log audio URL
-        await playTts(audio_url);  // Play the audio using URL
-      } 
-      // Handle raw audio data if returned
-      else if (audio_data) {
-        console.log('Received audio data:', audio_data);  // Log base64 audio data
-        const base64Audio = audio_data;
-        const fileUri = FileSystem.documentDirectory + 'response.wav';
-        await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
-        await playTts(fileUri);  // Play the audio file created
-      } else {
-        speak("No audio received.");
-      }
+
     } catch (err) {
       console.error('Error uploading image:', err);
       speak("Image analysis failed.");
@@ -94,33 +88,19 @@ export default function CameraScreen() {
     }
   };
 
-
-
-  const playTts = async (url: string) => {
+  const playAudio = async (url: string) => {
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-
-      // Try playing the URL directly if it's a valid audio URL
       const { sound } = await Audio.Sound.createAsync({ uri: url });
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) sound.unloadAsync();
       });
       await sound.playAsync();
-    } catch (e) {
-      try {
-        const filename = url.split('/').pop()?.split('?')[0];
-        const localFile = `${FileSystem.cacheDirectory}${filename}`;
-        await FileSystem.downloadAsync(url, localFile);
-        const { sound } = await Audio.Sound.createAsync({ uri: localFile });
-        await sound.playAsync();
-      } catch (err) {
-        console.error('Fallback audio failed:', err);
-        speak("Could not play the audio.");
-      }
+    } catch (err) {
+      console.error('Audio playback error:', err);
+      speak("Unable to play the audio response.");
     }
   };
-
-
 
   const resetCamera = () => {
     setPhotoUri(null);
@@ -149,9 +129,14 @@ export default function CameraScreen() {
               <Text style={styles.loadingText}>Analyzing...</Text>
             </View>
           )}
-          <TouchableOpacity style={styles.resetButton} onPress={resetCamera} disabled={isProcessing}>
-            <Text style={styles.resetButtonText}>Take Another</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={resetCamera} disabled={isProcessing}>
+              <Text style={styles.resetButtonText}>Take Another</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.homeButton} onPress={() => router.push('/Screens/homescreen')} disabled={isProcessing}>
+              <Text style={styles.resetButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
@@ -200,10 +185,20 @@ const styles = StyleSheet.create({
     height: '80%',
     resizeMode: 'cover',
   },
-  resetButton: {
+  actionButtons: {
     position: 'absolute',
     bottom: 30,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  resetButton: {
     backgroundColor: '#34A853',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  homeButton: {
+    backgroundColor: '#EA4335',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 8,
