@@ -44,7 +44,7 @@ export default function SplashScreen() {
         >
           <View style={styles.logoWrapper}>
             <Image
-              source={require('../assets/images/eye.jpg')}
+              source={require('../assets/images/eye.png')}
               style={styles.logo}
             />
             <View style={styles.logoGlow} />
