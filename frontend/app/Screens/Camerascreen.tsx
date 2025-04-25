@@ -15,6 +15,7 @@ export default function CameraScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const cameraRef = useRef<CameraView | null>(null);
   const navigation = useNavigation();
+  const [sound, setSound] = useState<Audio.Sound | null>(null); // Track audio playback
 
   const speak = (text: string) => {
     Speech.speak(text, {
@@ -28,12 +29,40 @@ export default function CameraScreen() {
     if (permission?.granted) {
       speak("You are on the camera screen. Press the large button at the bottom to take a picture.");
     }
-    return () => Speech.stop();
+    return () => {
+      Speech.stop();
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
   }, [permission]);
+
+  // Clean up audio on unmount
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
+  const stopAllAudio = async () => {
+    try {
+      Speech.stop();
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      }
+    } catch (error) {
+      console.error('Error stopping audio:', error);
+    }
+  };
 
   const takeAndSendPhoto = async () => {
     if (cameraRef.current) {
       try {
+        await stopAllAudio(); // Stop any ongoing speech/audio before taking photo
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setPhotoUri(photo.uri);
@@ -69,17 +98,12 @@ export default function CameraScreen() {
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
-      // const contentType = res.headers['content-type']; contentType = audio/wav
-
-     
-    if (res.data) {
-      const cleanedText = res.data.replace(/[^a-zA-Z0-9\s]/g, '');
-      speak(cleanedText);
-    } else {
-      speak("No description received.");
-    }
-
-
+      if (res.data) {
+        const cleanedText = res.data.replace(/[^a-zA-Z0-9\s]/g, '');
+        speak(cleanedText);
+      } else {
+        speak("No description received.");
+      }
     } catch (err) {
       console.error('Error uploading image:', err);
       speak("Image analysis failed.");
@@ -91,21 +115,28 @@ export default function CameraScreen() {
   const playAudio = async (url: string) => {
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync({ uri: url });
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) sound.unloadAsync();
+      const { sound: newSound } = await Audio.Sound.createAsync({ uri: url });
+      setSound(newSound);
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) newSound.unloadAsync();
       });
-      await sound.playAsync();
+      await newSound.playAsync();
     } catch (err) {
       console.error('Audio playback error:', err);
       speak("Unable to play the audio response.");
     }
   };
 
-  const resetCamera = () => {
+  const resetCamera = async () => {
+    await stopAllAudio();
     setPhotoUri(null);
     setIsProcessing(false);
     speak("Ready to take another photo.");
+  };
+
+  const goToHome = async () => {
+    await stopAllAudio();
+    router.push('/Screens/homescreen');
   };
 
   if (!permission) return <View style={styles.container}><Text>Loading permissions...</Text></View>;
@@ -129,13 +160,25 @@ export default function CameraScreen() {
               <Text style={styles.loadingText}>Analyzing...</Text>
             </View>
           )}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.resetButton} onPress={resetCamera} disabled={isProcessing}>
-              <Text style={styles.resetButtonText}>Take Another</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.homeButton} onPress={() => router.push('/Screens/homescreen')} disabled={isProcessing}>
-              <Text style={styles.resetButtonText}>Back to Home</Text>
-            </TouchableOpacity>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity 
+              style={styles.leftHalfTouchable} 
+              onPress={resetCamera} 
+              disabled={isProcessing}
+            />
+            <TouchableOpacity 
+              style={styles.rightHalfTouchable} 
+              onPress={goToHome} 
+              disabled={isProcessing}
+            />
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.resetButton} onPress={resetCamera} disabled={isProcessing}>
+                <Text style={styles.resetButtonText}>Take Another</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.homeButton} onPress={goToHome} disabled={isProcessing}>
+                <Text style={styles.resetButtonText}>Back to Home</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       ) : (
@@ -150,10 +193,9 @@ export default function CameraScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center' },
-  camera: { flex: 1 },
+  container: { flex: 1, justifyContent: 'center',backgroundColor: '#000' },
+  camera: { flex: 1, backgroundColor: '#000' },
   buttonContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -164,14 +206,16 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: '#4285F4',
+    shadowRadius: 10,
+    shadowColor: '#000',
+    backgroundColor: '#7B4DFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 10,
   },
   captureButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold'
   },
   previewContainer: {
@@ -187,21 +231,21 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 10,
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingHorizontal: 44,
+    borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingHorizontal: 44,
+    borderRadius: 30,
   },
   resetButtonText: {
     color: 'white',
@@ -224,5 +268,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     padding: 16,
-  }
+  },
+  actionButtonsContainer: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+    height: 60, 
+  },
+  leftHalfTouchable: {
+    position: 'absolute',
+    left: 0,
+    width: '50%',
+    height: '100%',
+    zIndex: 2,
+  },
+  rightHalfTouchable: {
+    position: 'absolute',
+    right: 0,
+    width: '50%',
+    height: '100%',
+    zIndex: 2,
+  },
+  actionButtons: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: 16,
+    zIndex: 1,
+  },
 });
