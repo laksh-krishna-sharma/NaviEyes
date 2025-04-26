@@ -22,8 +22,9 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: Install EAS CLI globally
-        run: npm install -g eas-cli
+      - name: Install Expo CLI and EAS CLI globally
+        run: |
+          npm install -g expo-cli eas-cli
 
       - name: Login to Expo with Username and Password
         run: |
