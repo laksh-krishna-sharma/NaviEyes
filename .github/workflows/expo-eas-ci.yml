@@ -33,9 +33,3 @@ jobs:
       - name: Start Android APK build
         working-directory: frontend
         run: eas build --platform android --profile preview --non-interactive
-
-      - name: Upload APK as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: frontend/builds/**/*.apk

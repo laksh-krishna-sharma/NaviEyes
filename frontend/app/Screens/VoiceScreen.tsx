@@ -316,13 +316,13 @@ const styles = StyleSheet.create({
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 44,
+    paddingHorizontal: 40,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 44,
+    paddingHorizontal: 40,
     borderRadius: 30,
   },
   resetButtonText: {
