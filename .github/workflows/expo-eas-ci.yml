@@ -1,4 +1,4 @@
-name: Expo EAS CI/CD (Android Build)
+name: Expo EAS CI/CD (Android + Web Build)
 
 on:
   push:
@@ -34,8 +34,12 @@ jobs:
         working-directory: frontend
         run: eas build --platform android --profile preview --non-interactive
 
-      - name: Upload APK as Artifact
+      - name: Build Web Version
+        working-directory: frontend
+        run: npm run build:web
+
+      - name: Upload Web Build as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: frontend/builds/**/*.apk
+          name: web-build
+          path: frontend/web-build
