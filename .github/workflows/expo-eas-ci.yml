@@ -1,4 +1,4 @@
-name: Expo EAS CI/CD (Android + Web Build)
+name: Expo EAS CI/CD (Android Build)
 
 on:
   push:
@@ -18,28 +18,31 @@ jobs:
         with:
           node-version: 22
 
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install dependencies
         working-directory: frontend
         run: npm install
 
-      - name: Install Expo CLI and EAS CLI globally
-        run: |
-          npm install -g expo-cli eas-cli
+      - name: Authenticate with Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Login to Expo with Username and Password
-        run: |
-          expo login -u ${{ secrets.EXPO_USERNAME }} -p ${{ secrets.EXPO_PASSWORD }}
-
-      - name: Start Android APK build (Production)
+      - name: Start Android APK build
         working-directory: frontend
         run: eas build --platform android --profile preview --non-interactive
 
-      - name: Build Web Version
-        working-directory: frontend
-        run: npm run build:web
-
-      - name: Upload Web Build as Artifact
+      - name: Upload APK as Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: web-build
-          path: frontend/web-build
+          name: android-apk
+          path: frontend/builds/**/*.apk
