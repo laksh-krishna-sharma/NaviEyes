@@ -32,7 +32,7 @@ jobs:
 
       - name: Start Android APK build (Production)
         working-directory: frontend
-        run: eas build --platform android --profile production --non-interactive
+        run: eas build --platform android --profile preview --non-interactive
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
