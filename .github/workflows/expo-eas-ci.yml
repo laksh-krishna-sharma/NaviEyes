@@ -30,9 +30,9 @@ jobs:
         run: |
           expo login -u ${{ secrets.EXPO_USERNAME }} -p ${{ secrets.EXPO_PASSWORD }}
 
-      - name: Start Android APK build
+      - name: Start Android APK build (Production)
         working-directory: frontend
-        run: eas build --platform android --non-interactive --output=./builds
+        run: eas build --platform android --profile production --non-interactive
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
