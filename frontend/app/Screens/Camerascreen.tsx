@@ -2,10 +2,9 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import * as Audio from 'expo-av';
+import { Audio } from 'expo-av';
 import axios from 'axios';
 import * as Speech from 'expo-speech';
-import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 
 export default function CameraScreen() {
@@ -14,8 +13,7 @@ export default function CameraScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [permissionRequested, setPermissionRequested] = useState(false);
-  const cameraRef = useRef<CameraView | null>(null);
-  const navigation = useNavigation();
+  const cameraRef = useRef<CameraView>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   const speak = (text: string) => {
@@ -28,14 +26,14 @@ export default function CameraScreen() {
 
   useEffect(() => {
     if (!permission) {
-      speak("Checking camera permission");
+      speak('Checking camera permission');
       return;
     }
 
     if (permission.granted) {
-      speak("You are on the camera screen. Press the large button at the bottom to take a picture.");
+      speak('You are on the camera screen. Press the large button at the bottom to take a picture.');
     } else if (!permissionRequested) {
-      const message = "To use the camera, we need your camera permission. Please tap the button in the center of the screen to allow access. This will open a permission dialog.";
+      const message = 'To use the camera, we need your camera permission. Please tap the button in the center of the screen to allow access.';
       speak(message);
     }
   }, [permission, permissionRequested]);
@@ -65,11 +63,11 @@ export default function CameraScreen() {
   const handlePermissionRequest = async () => {
     setPermissionRequested(true);
     await stopAllAudio();
-    speak("Requesting camera access. Please respond to the dialog.");
-    
+    speak('Requesting camera access. Please respond to the dialog.');
+
     const result = await requestPermission();
     if (!result.granted) {
-      speak("Permission was not granted. You can try again or enable it in your device settings.");
+      speak('Permission was not granted. You can try again or enable it in your device settings.');
       setPermissionRequested(false);
     }
   };
@@ -81,14 +79,14 @@ export default function CameraScreen() {
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setPhotoUri(photo.uri);
-          speak("Photo taken. Now analyzing the image.");
+          speak('Photo taken. Now analyzing the image.');
           await sendPhotoToBackend(photo.uri);
         } else {
-          speak("Could not capture photo.");
+          speak('Could not capture photo.');
         }
       } catch (error) {
         console.error('Photo capture error:', error);
-        speak("Failed to take a photo.");
+        speak('Failed to take a photo.');
       }
     }
   };
@@ -117,13 +115,13 @@ export default function CameraScreen() {
         const maxLength = 1000;
         const cleanedText = res.data.slice(0, maxLength).replace(/[^a-zA-Z0-9\s]/g, '');
         speak(cleanedText);
-        speak("Image analysis complete. Click the button on bottom left to take another photo. or click the button on bottom right to go back to home.");
+        speak('Image analysis complete. Click the button on bottom left to take another photo. Or click the button on bottom right to go back to home.');
       } else {
-        speak("No description received.");
+        speak('No description received.');
       }
     } catch (err) {
       console.error('Error uploading image:', err);
-      speak("Image analysis failed.");
+      speak('Image analysis failed.');
     } finally {
       setIsProcessing(false);
     }
@@ -133,14 +131,13 @@ export default function CameraScreen() {
     await stopAllAudio();
     setPhotoUri(null);
     setIsProcessing(false);
-    speak("Ready to take another photo.");
+    speak('Ready to take another photo.');
   };
 
   const goToHome = async () => {
     await stopAllAudio();
     router.push('/Screens/homescreen');
   };
-
 
   if (!permission) {
     return (
@@ -168,7 +165,6 @@ export default function CameraScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        {/* Add this new TouchableOpacity for center area */}
         <TouchableOpacity
           style={styles.centerPermissionTouchable}
           onPress={handlePermissionRequest}
@@ -200,10 +196,18 @@ export default function CameraScreen() {
               disabled={isProcessing}
             />
             <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.resetButton} onPress={resetCamera} disabled={isProcessing}>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={resetCamera}
+                disabled={isProcessing}
+              >
                 <Text style={styles.resetButtonText}>Take Another</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.homeButton} onPress={goToHome} disabled={isProcessing}>
+              <TouchableOpacity
+                style={styles.homeButton}
+                onPress={goToHome}
+                disabled={isProcessing}
+              >
                 <Text style={styles.resetButtonText}>Back to Home</Text>
               </TouchableOpacity>
             </View>
@@ -245,7 +249,7 @@ const styles = StyleSheet.create({
   captureButtonText: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   previewContainer: {
     flex: 1,
@@ -258,28 +262,38 @@ const styles = StyleSheet.create({
     height: '80%',
     resizeMode: 'cover',
   },
-  actionButtons: {
+  actionButtonsContainer: {
     position: 'absolute',
     bottom: 10,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
+  actionButtons: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     gap: 16,
+    zIndex: 1,
   },
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 36,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 36,
     borderRadius: 30,
   },
   resetButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   loadingOverlay: {
     position: 'absolute',
@@ -341,12 +355,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  actionButtonsContainer: {
+  centerPermissionTouchable: {
     position: 'absolute',
-    bottom: 10,
-    left: 0,
-    right: 0,
-    height: 60,
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
   leftHalfTouchable: {
     position: 'absolute',
@@ -361,24 +375,5 @@ const styles = StyleSheet.create({
     width: '50%',
     height: '100%',
     zIndex: 2,
-  },
-  actionButtons: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    gap: 16,
-    zIndex: 1,
-  },
-  centerPermissionTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
   },
 });

@@ -2,61 +2,56 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import * as Speech from 'expo-speech'; 
+import * as Speech from 'expo-speech';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const screenHeight = Dimensions.get('window').height;
+  const { height } = Dimensions.get('window');
 
   useEffect(() => {
-    const speak = (text: string) => {
-      Speech.speak(text, {
+    Speech.speak(
+      "You are on the Home screen. Press the button at the top to access the camera. Press the button at the bottom to use the voice-to-text feature.",
+      {
         voice: 'en-gb-x-sfg#female_1-local',
         pitch: 0.8,
         rate: 0.8,
-      });
-    };
-
-    speak("You are on the Home screen. Press the button at the top to access the camera. Press the button at the bottom to use the voice-to-text feature.");
+      }
+    );
 
     return () => {
       Speech.stop();
     };
   }, []);
 
-  const handleButtonPress = (screen: string) => {
+  const handleNavigation = (path: '/Screens/Camerascreen' | '/Screens/VoiceScreen') => {
     Speech.stop();
-    router.push(screen);
+    router.push(path);
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={styles.topHalfTouchable}
-        onPress={() => handleButtonPress('/Screens/Camerascreen')}
+        style={styles.topTouchable}
+        onPress={() => handleNavigation('/Screens/Camerascreen')}
       >
         <View style={[styles.button, styles.topButton]}>
-          <View style={styles.buttonContent}>
-            <FontAwesome name="camera" size={60} color="#fff" style={styles.icon} />
-            <Text style={styles.buttonText}>Camera</Text>
-          </View>
+          <FontAwesome name="camera" size={60} color="#fff" style={styles.icon} />
+          <Text style={styles.buttonText}>Camera</Text>
         </View>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.bottomHalfTouchable}
-        onPress={() => handleButtonPress('/Screens/VoiceScreen')}
+        style={styles.bottomTouchable}
+        onPress={() => handleNavigation('/Screens/VoiceScreen')}
       >
         <View style={[styles.button, styles.bottomButton]}>
-          <View style={styles.buttonContent}>
-            <FontAwesome name="microphone" size={60} color="#1a1a1a" style={styles.icon} />
-            <Text style={[styles.buttonText, { color: '#1a1a1a' }]}>Microphone</Text>
-          </View>
+          <FontAwesome name="microphone" size={60} color="#1a1a1a" style={styles.icon} />
+          <Text style={[styles.buttonText, { color: '#1a1a1a' }]}>Microphone</Text>
         </View>
       </TouchableOpacity>
 
-      <View style={styles.centerTextContainer}>
-        <Text style={styles.centerText}>Greetings from NaviEyes!</Text>
+      <View style={styles.centerContent}>
+        <Text style={styles.title}>Greetings from NaviEyes!</Text>
         <View style={styles.divider} />
       </View>
     </View>
@@ -69,7 +64,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
     paddingHorizontal: 16,
   },
-  topHalfTouchable: {
+  topTouchable: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -79,7 +74,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     zIndex: 1,
   },
-  bottomHalfTouchable: {
+  bottomTouchable: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -90,8 +85,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   button: {
-    width: 200,
-    height: 400,
+    width: 350,
+    height: 200,
     borderRadius: 100,
     justifyContent: 'center',
     alignItems: 'center',
@@ -104,20 +99,22 @@ const styles = StyleSheet.create({
   },
   topButton: {
     backgroundColor: '#7B4DFF',
-    height: 200,
-    width: 350,
   },
   bottomButton: {
     backgroundColor: '#64B5F6',
-    height: 200,
-    width: 350,
-
   },
-  buttonContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  buttonText: {
+    fontSize: 26,
+    fontWeight: '600',
+    marginTop: 15,
+    letterSpacing: 0.5,
   },
-  centerTextContainer: {
+  icon: {
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  centerContent: {
     position: 'absolute',
     top: 0,
     bottom: 0,
@@ -127,25 +124,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 0,
   },
-  centerText: {
+  title: {
     fontSize: 28,
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
     letterSpacing: 1,
     marginBottom: 20,
-  },
-  buttonText: {
-    fontSize: 26,
-    fontWeight: '600',
-    marginTop: 15,
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  icon: {
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   divider: {
     height: 2,

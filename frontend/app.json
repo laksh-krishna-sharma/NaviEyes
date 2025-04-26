@@ -9,13 +9,17 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lakshkrishna.NaviEyes",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "permissions": [
-          "CAMERA",
-          "MICROPHONE",
-          "ACCESS_FINE_LOCATION"
+        "CAMERA",
+        "MICROPHONE",
+        "ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/eye.png",

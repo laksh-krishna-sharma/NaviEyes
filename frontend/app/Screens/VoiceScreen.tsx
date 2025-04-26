@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Audio } from 'expo-av';
+import { Audio} from 'expo-av';
 import * as Speech from 'expo-speech';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
@@ -8,12 +8,12 @@ import { encode } from 'base64-arraybuffer';
 import { router } from 'expo-router';
 
 const VoiceScreen = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState(null);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
-  const [sound, setSound] = useState(null);
-  const [permissionRequested, setPermissionRequested] = useState(false);
-  const [hasSpokenPermissionGranted, setHasSpokenPermissionGranted] = useState(false);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [permissionRequested, setPermissionRequested] = useState<boolean>(false);
+  const [hasSpokenPermissionGranted, setHasSpokenPermissionGranted] = useState<boolean>(false);
 
   const voiceConfig = {
     voice: 'en-gb-x-sfg#female_1-local',
@@ -21,8 +21,14 @@ const VoiceScreen = () => {
     rate: 0.8,
   };
 
-  const speak = (text) => {
-    Speech.speak(text, {
+  const speak = (text: string) => {
+    const cleanedText = text
+      .replace(/\s+/g, ' ')
+      .replace(/\n+/g, ' ')
+      .replace(/[^\x00-\x7F]+/g, '')
+      .trim();
+    
+    Speech.speak(cleanedText, {
       voice: voiceConfig.voice,
       pitch: voiceConfig.pitch,
       rate: voiceConfig.rate,
@@ -39,9 +45,7 @@ const VoiceScreen = () => {
       speak("You are on the Voice to Text screen. Press the button in the center to start recording and ask your query. Once you finish, press the button again to stop recording.");
       setHasSpokenPermissionGranted(true);
     } else if (!permissionResponse.granted && !permissionRequested) {
-      const message = "To use voice recording, we need your microphone permission. Please tap the button in the center of the screen "+
-        "to allow access. This will open a permission dialog.";
-      speak(message);
+      speak("To use voice recording, we need your microphone permission. Please tap the button in the center of the screen to allow access. This will open a permission dialog.");
     }
   }, [permissionResponse, permissionRequested, hasSpokenPermissionGranted]);
 
@@ -71,7 +75,7 @@ const VoiceScreen = () => {
     setPermissionRequested(true);
     await stopAllAudio();
     speak("Requesting microphone access. Please respond to the dialog.");
-    
+
     const result = await requestPermission();
     if (!result.granted) {
       speak("Permission was not granted. You can try again or enable it in your device settings.");
@@ -79,14 +83,14 @@ const VoiceScreen = () => {
     }
   };
 
-  const sendToBackend = async (uri) => {
+  const sendToBackend = async (uri: string) => {
     try {
       const formData = new FormData();
       formData.append('file', {
         uri,
         name: 'recording.wav',
         type: 'audio/wav',
-      });
+      } as any); // workaround since React Native's FormData type doesn't perfectly match
 
       const response = await axios.post('https://532d-13-51-106-169.ngrok-free.app/interact/voice-query', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -106,12 +110,11 @@ const VoiceScreen = () => {
         await FileSystem.writeAsStringAsync(fileUri, base64Audio, { encoding: FileSystem.EncodingType.Base64 });
 
         const { sound: newSound } = await Audio.Sound.createAsync({ uri: fileUri });
-
         setSound(newSound);
 
         newSound.playAsync().then(() => {
           newSound.setOnPlaybackStatusUpdate((status) => {
-            if (status.didJustFinish) {
+            if ('isLoaded' in status && status.isLoaded && status.didJustFinish) {
               speak("Click the button on bottom left to ask another query or click the button on bottom right to go back to home.");
             }
           });
@@ -313,13 +316,13 @@ const styles = StyleSheet.create({
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal:30,
+    paddingHorizontal:36,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 36,
     borderRadius: 30,
   },
   resetButtonText: {
