@@ -13,9 +13,10 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [permissionRequested, setPermissionRequested] = useState(false);
   const cameraRef = useRef<CameraView | null>(null);
   const navigation = useNavigation();
-  const [sound, setSound] = useState<Audio.Sound | null>(null); // Track audio playback
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   const speak = (text: string) => {
     Speech.speak(text, {
@@ -26,23 +27,25 @@ export default function CameraScreen() {
   };
 
   useEffect(() => {
-    if (permission?.granted) {
-      speak("You are on the camera screen. Press the large button at the bottom to take a picture.");
+    if (!permission) {
+      speak("Checking camera permission");
+      return;
     }
-    return () => {
-      Speech.stop();
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [permission]);
 
-  // Clean up audio on unmount
+    if (permission.granted) {
+      speak("You are on the camera screen. Press the large button at the bottom to take a picture.");
+    } else if (!permissionRequested) {
+      const message = "To use the camera, we need your camera permission. Please tap the button in the center of the screen to allow access. This will open a permission dialog.";
+      speak(message);
+    }
+  }, [permission, permissionRequested]);
+
   useEffect(() => {
     return () => {
       if (sound) {
         sound.unloadAsync();
       }
+      Speech.stop();
     };
   }, [sound]);
 
@@ -59,14 +62,26 @@ export default function CameraScreen() {
     }
   };
 
+  const handlePermissionRequest = async () => {
+    setPermissionRequested(true);
+    await stopAllAudio();
+    speak("Requesting camera access. Please respond to the dialog.");
+    
+    const result = await requestPermission();
+    if (!result.granted) {
+      speak("Permission was not granted. You can try again or enable it in your device settings.");
+      setPermissionRequested(false);
+    }
+  };
+
   const takeAndSendPhoto = async () => {
     if (cameraRef.current) {
       try {
-        await stopAllAudio(); // Stop any ongoing speech/audio before taking photo
+        await stopAllAudio();
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setPhotoUri(photo.uri);
-          speak("Photo taken.... Now analyzing the image.");
+          speak("Photo taken. Now analyzing the image.");
           await sendPhotoToBackend(photo.uri);
         } else {
           speak("Could not capture photo.");
@@ -102,7 +117,7 @@ export default function CameraScreen() {
         const maxLength = 1000;
         const cleanedText = res.data.slice(0, maxLength).replace(/[^a-zA-Z0-9\s]/g, '');
         speak(cleanedText);
-        speak("Image analysis complete. Click the button on bottom left to take another photo or click the button on bottom right to go back to home.");
+        speak("Image analysis complete. Click the button on bottom left to take another photo. or click the button on bottom right to go back to home.");
       } else {
         speak("No description received.");
       }
@@ -113,7 +128,6 @@ export default function CameraScreen() {
       setIsProcessing(false);
     }
   };
-
 
   const resetCamera = async () => {
     await stopAllAudio();
@@ -127,14 +141,39 @@ export default function CameraScreen() {
     router.push('/Screens/homescreen');
   };
 
-  if (!permission) return <View style={styles.container}><Text>Loading permissions...</Text></View>;
+
+  if (!permission) {
+    return (
+      <View style={styles.permissionLoadingContainer}>
+        <Text style={styles.permissionLoadingText}>Checking permissions...</Text>
+      </View>
+    );
+  }
 
   if (!permission.granted) {
-    speak("Camera access is required to take photos. Please grant permission.");
     return (
-      <View style={styles.container}>
-        <Text style={styles.text}>Camera access required</Text>
-        <Button title="Grant Permission" onPress={requestPermission} />
+      <View style={styles.permissionContainer}>
+        <View style={styles.permissionContent}>
+          <Text style={styles.permissionTitle}>Camera Access Needed</Text>
+          <Text style={styles.permissionDescription}>
+            To take photos, please allow camera access
+          </Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={handlePermissionRequest}
+            disabled={permissionRequested}
+          >
+            <Text style={styles.permissionButtonText}>
+              {permissionRequested ? 'Requesting...' : 'Enable Camera'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {/* Add this new TouchableOpacity for center area */}
+        <TouchableOpacity
+          style={styles.centerPermissionTouchable}
+          onPress={handlePermissionRequest}
+          disabled={permissionRequested}
+        />
       </View>
     );
   }
@@ -150,14 +189,14 @@ export default function CameraScreen() {
             </View>
           )}
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity 
-              style={styles.leftHalfTouchable} 
-              onPress={resetCamera} 
+            <TouchableOpacity
+              style={styles.leftHalfTouchable}
+              onPress={resetCamera}
               disabled={isProcessing}
             />
-            <TouchableOpacity 
-              style={styles.rightHalfTouchable} 
-              onPress={goToHome} 
+            <TouchableOpacity
+              style={styles.rightHalfTouchable}
+              onPress={goToHome}
               disabled={isProcessing}
             />
             <View style={styles.actionButtons}>
@@ -182,8 +221,9 @@ export default function CameraScreen() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center',backgroundColor: '#000' },
+  container: { flex: 1, justifyContent: 'center', backgroundColor: '#000' },
   camera: { flex: 1, backgroundColor: '#000' },
   buttonContainer: {
     flex: 1,
@@ -227,13 +267,13 @@ const styles = StyleSheet.create({
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 44,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 44,
     borderRadius: 30,
   },
   resetButtonText: {
@@ -253,17 +293,60 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  text: {
+  permissionLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  permissionLoadingText: {
+    color: 'white',
+    fontSize: 18,
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    padding: 20,
+  },
+  permissionContent: {
+    width: '100%',
+    maxWidth: 300,
+    alignItems: 'center',
+  },
+  permissionTitle: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
     textAlign: 'center',
+  },
+  permissionDescription: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 16,
-    padding: 16,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  permissionButton: {
+    backgroundColor: '#7B4DFF',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    width: '100%',
+    alignItems: 'center',
+  },
+  permissionButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
   },
   actionButtonsContainer: {
     position: 'absolute',
     bottom: 10,
     left: 0,
     right: 0,
-    height: 60, 
+    height: 60,
   },
   leftHalfTouchable: {
     position: 'absolute',
@@ -286,6 +369,16 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     gap: 16,
+    zIndex: 1,
+  },
+  centerPermissionTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 1,
   },
 });

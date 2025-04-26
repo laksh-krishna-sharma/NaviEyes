@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import * as Speech from 'expo-speech'; // ✅ Import this
+import * as Speech from 'expo-speech'; 
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -24,11 +24,16 @@ export default function HomeScreen() {
     };
   }, []);
 
+  const handleButtonPress = (screen: string) => {
+    Speech.stop();
+    router.push(screen);
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.topHalfTouchable}
-        onPress={() => router.push('/Screens/Camerascreen')}
+        onPress={() => handleButtonPress('/Screens/Camerascreen')}
       >
         <View style={[styles.button, styles.topButton]}>
           <View style={styles.buttonContent}>
@@ -40,7 +45,7 @@ export default function HomeScreen() {
 
       <TouchableOpacity
         style={styles.bottomHalfTouchable}
-        onPress={() => router.push('/Screens/VoiceScreen')}
+        onPress={() => handleButtonPress('/Screens/VoiceScreen')}
       >
         <View style={[styles.button, styles.bottomButton]}>
           <View style={styles.buttonContent}>
@@ -57,7 +62,6 @@ export default function HomeScreen() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

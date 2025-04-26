@@ -26,7 +26,7 @@ export default function SplashScreen() {
         router.replace('/Screens/homescreen');
       }, 2000);
 
-    }, 2500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [router]);
