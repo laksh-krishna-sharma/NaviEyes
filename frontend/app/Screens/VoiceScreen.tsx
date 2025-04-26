@@ -11,7 +11,9 @@ const VoiceScreen = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
-  const [sound, setSound] = useState(null); 
+  const [sound, setSound] = useState(null);
+  const [permissionRequested, setPermissionRequested] = useState(false);
+  const [hasSpokenPermissionGranted, setHasSpokenPermissionGranted] = useState(false);
 
   const voiceConfig = {
     voice: 'en-gb-x-sfg#female_1-local',
@@ -28,35 +30,29 @@ const VoiceScreen = () => {
   };
 
   useEffect(() => {
-    speak("You are on the Voice to Text screen. Press the button in the center to start recording and ask your query. Once you finish, press the button again to stop recording.");
-    return () => {
-      Speech.stop();
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, []);
+    if (!permissionResponse) {
+      speak("Checking microphone permission");
+      return;
+    }
 
+    if (permissionResponse.granted && !hasSpokenPermissionGranted) {
+      speak("You are on the Voice to Text screen. Press the button in the center to start recording and ask your query. Once you finish, press the button again to stop recording.");
+      setHasSpokenPermissionGranted(true);
+    } else if (!permissionResponse.granted && !permissionRequested) {
+      const message = "To use voice recording, we need your microphone permission. Please tap the button in the center of the screen "+
+        "to allow access. This will open a permission dialog.";
+      speak(message);
+    }
+  }, [permissionResponse, permissionRequested, hasSpokenPermissionGranted]);
 
   useEffect(() => {
     return () => {
       if (sound) {
         sound.unloadAsync();
       }
+      Speech.stop();
     };
   }, [sound]);
-
-  useEffect(() => {
-  const checkPermissions = async () => {
-    const { status } = await Audio.getPermissionsAsync();
-    if (status !== 'granted') {
-      await Audio.requestPermissionsAsync();
-    }
-  };
-
-  checkPermissions();
-}, []);
-
 
   const stopAllAudio = async () => {
     try {
@@ -71,6 +67,18 @@ const VoiceScreen = () => {
     }
   };
 
+  const handlePermissionRequest = async () => {
+    setPermissionRequested(true);
+    await stopAllAudio();
+    speak("Requesting microphone access. Please respond to the dialog.");
+    
+    const result = await requestPermission();
+    if (!result.granted) {
+      speak("Permission was not granted. You can try again or enable it in your device settings.");
+      setPermissionRequested(false);
+    }
+  };
+
   const sendToBackend = async (uri) => {
     try {
       const formData = new FormData();
@@ -79,9 +87,6 @@ const VoiceScreen = () => {
         name: 'recording.wav',
         type: 'audio/wav',
       });
-
-      
-      // await speak("Processing your query. Please wait...");
 
       const response = await axios.post('https://532d-13-51-106-169.ngrok-free.app/interact/voice-query', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -104,11 +109,9 @@ const VoiceScreen = () => {
 
         setSound(newSound);
 
-        // Non-blocking audio playback
         newSound.playAsync().then(() => {
           newSound.setOnPlaybackStatusUpdate((status) => {
             if (status.didJustFinish) {
-              // Handle audio finish
               speak("Click the button on bottom left to ask another query or click the button on bottom right to go back to home.");
             }
           });
@@ -122,36 +125,31 @@ const VoiceScreen = () => {
     }
   };
 
+  const startRecording = async () => {
+    try {
+      await stopAllAudio();
 
-
-
-const startRecording = async () => {
-  try {
-    await stopAllAudio(); // Stop any ongoing speech/audio before recording
-
-    // Check if the permission is granted
-    if (permissionResponse?.status !== 'granted') {
-      speak('Microphone permission is required! Please grant permission.');
-      const { status } = await Audio.requestPermissionsAsync(); // Explicitly request permission
-      if (status !== 'granted') {
-        speak('Microphone permission is required!');
-        return;
+      if (permissionResponse?.status !== 'granted') {
+        speak('Microphone permission is required! Please grant permission.');
+        const { status } = await Audio.requestPermissionsAsync();
+        if (status !== 'granted') {
+          speak('Microphone permission is required!');
+          return;
+        }
       }
+
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      speak("Recording started. You may speak now.");
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+
+      setRecording(newRecording);
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      speak("Failed to start recording. Please try again.");
     }
-
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-    speak("Recording started. You may speak now.");
-
-    const { recording: newRecording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-
-    setRecording(newRecording);
-    setIsRecording(true);
-  } catch (err) {
-    console.error('Failed to start recording', err);
-    speak("Failed to start recording. Please try again.");
-  }
-};
-
+  };
 
   const stopRecording = async () => {
     try {
@@ -182,6 +180,42 @@ const startRecording = async () => {
     await stopAllAudio();
     router.push('/Screens/homescreen');
   };
+
+  if (!permissionResponse) {
+    return (
+      <View style={styles.permissionLoadingContainer}>
+        <Text style={styles.permissionLoadingText}>Checking permissions...</Text>
+      </View>
+    );
+  }
+
+  if (!permissionResponse.granted) {
+    return (
+      <View style={styles.permissionContainer}>
+        <View style={styles.permissionContent}>
+          <Text style={styles.permissionTitle}>Microphone Access Needed</Text>
+          <Text style={styles.permissionDescription}>
+            To record voice queries, please allow microphone access
+          </Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={handlePermissionRequest}
+            disabled={permissionRequested}
+          >
+            <Text style={styles.permissionButtonText}>
+              {permissionRequested ? 'Requesting...' : 'Enable Microphone'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.centerPermissionTouchable}
+          onPress={handlePermissionRequest}
+          disabled={permissionRequested}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -279,13 +313,13 @@ const styles = StyleSheet.create({
   resetButton: {
     backgroundColor: '#34A853',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 44,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 44,
     borderRadius: 30,
   },
   resetButtonText: {
@@ -298,7 +332,7 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 0,
     right: 0,
-    height: 60, // Match your button height
+    height: 60,
   },
   leftHalfTouchable: {
     position: 'absolute',
@@ -314,16 +348,64 @@ const styles = StyleSheet.create({
     height: '100%',
     zIndex: 2,
   },
-  actionButtons: {
+  permissionLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  permissionLoadingText: {
+    color: 'white',
+    fontSize: 18,
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    padding: 20,
+  },
+  permissionContent: {
+    width: '100%',
+    maxWidth: 300,
+    alignItems: 'center',
+  },
+  permissionTitle: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  permissionDescription: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  permissionButton: {
+    backgroundColor: '#64B5F6',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    width: '100%',
+    alignItems: 'center',
+  },
+  permissionButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  centerPermissionTouchable: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    gap: 12,
-    zIndex: 1,
+    bottom: 0,
     justifyContent: 'center',
-  }
+    alignItems: 'center',
+    zIndex: 1,
+  },
 });
 
 export default VoiceScreen;
