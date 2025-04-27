@@ -1,13 +1,15 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import { Button, StyleSheet, Text, TouchableOpacity, View, Image, Dimensions } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 import axios from 'axios';
 import * as Speech from 'expo-speech';
 import { router } from 'expo-router';
 
-export default function CameraScreen() {
+const { width, height } = Dimensions.get('window');
+
+  export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -227,28 +229,31 @@ export default function CameraScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', backgroundColor: '#000' },
-  camera: { flex: 1, backgroundColor: '#000' },
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  camera: {
+    flex: 1,
+  },
   buttonContainer: {
     flex: 1,
     justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingBottom: 40,
+    paddingBottom: height * 0.05,
   },
   captureButton: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    shadowRadius: 10,
-    shadowColor: '#000',
+    width: width * 0.25,
+    height: width * 0.25,
+    borderRadius: (width * 0.25) / 2,
     backgroundColor: '#7B4DFF',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 10,
+    elevation: 8,
   },
   captureButtonText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: width * 0.05,
     fontWeight: 'bold',
   },
   previewContainer: {
@@ -258,53 +263,54 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   preview: {
-    width: '100%',
-    height: '80%',
+    width: width,
+    height: height * 0.75,
     resizeMode: 'cover',
   },
   actionButtonsContainer: {
     position: 'absolute',
-    bottom: 10,
-    left: 0,
-    right: 0,
-    height: 60,
-  },
-  actionButtons: {
-    position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    height: height * 0.15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtons: {
     flexDirection: 'row',
-    gap: 16,
-    zIndex: 1,
+    gap: width * 0.05,
+    paddingHorizontal: width * 0.1,
   },
   resetButton: {
+    flex: 1,
     backgroundColor: '#34A853',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
+    paddingVertical: height * 0.02,
     borderRadius: 30,
+    marginHorizontal: 5,
+    alignItems: 'center',
   },
   homeButton: {
+    flex: 1,
     backgroundColor: '#EA4335',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
+    paddingVertical: height * 0.02,
     borderRadius: 30,
+    marginHorizontal: 5,
+    alignItems: 'center',
   },
   resetButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: width * 0.04,
     fontWeight: 'bold',
   },
   loadingOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: width * 0.045,
     fontWeight: 'bold',
   },
   permissionLoadingContainer: {
@@ -315,49 +321,45 @@ const styles = StyleSheet.create({
   },
   permissionLoadingText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: width * 0.045,
   },
   permissionContainer: {
     flex: 1,
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
-    padding: 20,
+    paddingHorizontal: width * 0.1,
   },
   permissionContent: {
-    width: '100%',
-    maxWidth: 300,
     alignItems: 'center',
   },
   permissionTitle: {
     color: 'white',
-    fontSize: 22,
+    fontSize: width * 0.06,
     fontWeight: 'bold',
-    marginBottom: 10,
     textAlign: 'center',
+    marginBottom: height * 0.02,
   },
   permissionDescription: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
-    marginBottom: 30,
+    fontSize: width * 0.04,
     textAlign: 'center',
+    marginBottom: height * 0.04,
   },
   permissionButton: {
     backgroundColor: '#7B4DFF',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
     borderRadius: 30,
-    width: '100%',
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.2,
     alignItems: 'center',
   },
   permissionButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: width * 0.045,
     fontWeight: '600',
   },
   centerPermissionTouchable: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,

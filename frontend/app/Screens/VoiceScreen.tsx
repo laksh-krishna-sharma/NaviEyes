@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Audio} from 'expo-av';
 import * as Speech from 'expo-speech';
 import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
 import { encode } from 'base64-arraybuffer';
 import { router } from 'expo-router';
+
+const { width, height } = Dimensions.get('window');
 
 const VoiceScreen = () => {
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -268,74 +270,78 @@ const styles = StyleSheet.create({
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    padding: 20, 
-    backgroundColor: '#000' 
+    padding: width * 0.05, 
+    backgroundColor: '#000',
   },
   title: { 
-    fontSize: 24, 
+    fontSize: width * 0.06, 
     fontWeight: 'bold', 
-    marginBottom: 20, 
-    color: 'white' 
+    marginBottom: height * 0.02, 
+    color: 'white', 
+    textAlign: 'center',
   },
   statusContainer: { 
-    marginBottom: 30, 
-    height: 30 
+    marginBottom: height * 0.03, 
+    height: height * 0.04, 
+    justifyContent: 'center', 
+    alignItems: 'center',
   },
   statusText: { 
-    fontSize: 18, 
+    fontSize: width * 0.045, 
     color: 'white' 
   },
   button: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: width * 0.5,
+    height: width * 0.5,
+    borderRadius: (width * 0.5) / 2,
     backgroundColor: '#4285F4',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    elevation: Platform.OS === 'android' ? 5 : 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-    marginBottom: 30,
+    marginBottom: height * 0.03,
   },
   recordingButton: { 
     backgroundColor: '#64B5F6' 
   },
   buttonText: { 
     color: 'white', 
-    fontSize: 18, 
-    fontWeight: 'bold' 
+    fontSize: width * 0.045, 
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  actionButtonsContainer: {
+    position: 'absolute',
+    bottom: height * 0.03,
+    left: 0,
+    right: 0,
+    height: height * 0.08,
   },
   actionButtons: {
-    position: 'absolute',
-    bottom: 30,
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: width * 0.03,
   },
   resetButton: {
     backgroundColor: '#34A853',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
+    paddingVertical: height * 0.018,
+    paddingHorizontal: width * 0.1,
     borderRadius: 30,
   },
   homeButton: {
     backgroundColor: '#EA4335',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
+    paddingVertical: height * 0.018,
+    paddingHorizontal: width * 0.1,
     borderRadius: 30,
   },
   resetButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold'
-  },
-  actionButtonsContainer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
-    height: 60,
+    fontSize: width * 0.04,
+    fontWeight: 'bold',
   },
   leftHalfTouchable: {
     position: 'absolute',
@@ -359,44 +365,44 @@ const styles = StyleSheet.create({
   },
   permissionLoadingText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: width * 0.045,
   },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000',
-    padding: 20,
+    padding: width * 0.05,
   },
   permissionContent: {
     width: '100%',
-    maxWidth: 300,
+    maxWidth: width * 0.8,
     alignItems: 'center',
   },
   permissionTitle: {
     color: 'white',
-    fontSize: 22,
+    fontSize: width * 0.06,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: height * 0.015,
     textAlign: 'center',
   },
   permissionDescription: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
-    marginBottom: 30,
+    fontSize: width * 0.045,
+    marginBottom: height * 0.03,
     textAlign: 'center',
   },
   permissionButton: {
     backgroundColor: '#64B5F6',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingVertical: height * 0.018,
+    paddingHorizontal: width * 0.08,
     borderRadius: 30,
     width: '100%',
     alignItems: 'center',
   },
   permissionButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: width * 0.045,
     fontWeight: '600',
   },
   centerPermissionTouchable: {
@@ -410,5 +416,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 });
+
 
 export default VoiceScreen;
